@@ -1,3 +1,4 @@
 holistic
 server.key
 server.crt
+.DS_Store
