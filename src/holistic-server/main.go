@@ -14,7 +14,7 @@ func ProcessRequest(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	buildHandler := http.FileServer(http.Dir("../holistic-client/build"))
+	buildHandler := http.FileServer(http.Dir("static"))
 	http.Handle("/", buildHandler)
 
 	http.HandleFunc("/api", ProcessRequest)
