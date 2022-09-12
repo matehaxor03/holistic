@@ -58,9 +58,9 @@ go build
 cd ../..
 echo build server successfull
 
-cp src/holistic-server/holistic dist/holistic
-cp src/holistic-server/server.crt dist/server.crt
-cp src/holistic-server/server.key dist/server.key
+cp -f src/holistic-server/holistic dist/holistic
+cp -f src/holistic-server/server.crt dist/server.crt
+cp -f src/holistic-server/server.key dist/server.key
 fi
 
 if [ $1 == 'start' ]
