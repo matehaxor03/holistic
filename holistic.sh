@@ -56,25 +56,25 @@ cp -R src/holistic-client/build dist/static
 cd src/holistic-server
 go build
 cd ../..
-echo build server successfull
 
 cp -f src/holistic-server/holistic dist/holistic
 cp -f src/holistic-server/server.crt dist/server.crt
 cp -f src/holistic-server/server.key dist/server.key
+echo build server successfull
 fi
 
 if [ $1 == 'start' ]
 then
 cd dist
 ./holistic &
-echo $! > pid
+echo $! > .pid
 cd ../
 fi
 
 if [ $1 == 'stop' ]
 then
 cd dist
-cat pid | xargs kill
-rm pid
+cat .pid | xargs kill
+rm .pid
 cd ../
 fi
