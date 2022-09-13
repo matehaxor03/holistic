@@ -51,7 +51,8 @@ npm run build
 cd ../..
 echo build client successfull
 
-cp -R src/holistic-client/build dist/static 
+rm -fr dist/static
+cp -fr src/holistic-client/build dist/static 
 
 cd src/holistic-server
 go build

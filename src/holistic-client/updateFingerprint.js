@@ -51,7 +51,6 @@ function checksumFile(hashName, absoluteFilename) {
 }
 
 getFilesRecursively(__dirname);
-console.log(filenames);
 
 let hashes = [];
 for(let filename of filenames) {
@@ -76,12 +75,8 @@ for(let filename of filenames) {
   hashes.push(hash);
 }
 
-console.log(hashes);
-
 let fingerprint = checksum("sha1", hashes.join(""));
 manifestObj["fingerprint"] = fingerprint;
-console.log(manifestObj);
-
 
 fs.writeFile('./public/manifest.json', JSON.stringify(manifestObj, undefined, 2), 'utf8', function(err) {
   if (err) {
