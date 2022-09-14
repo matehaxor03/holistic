@@ -7,10 +7,6 @@ export default class App extends React.Component {
   pages = {"TablePage": TablePage};
   state = {currentPage: <ContentPage id="content" context={this}></ContentPage>};
 
-  constructor(props) {
-    super(props);
-  }
-
   viewPage = (pageName, params) => {
     var Zlass = this.pages[pageName];
     var instance = <Zlass id={pageName} context={this} params={params}></Zlass>;
