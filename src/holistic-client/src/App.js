@@ -1,8 +1,11 @@
 import React from 'react';
 import NavBar from "./components/NavBar";
 import TablePage from './components/TablePage';
+import Context from './Context';
+import { ThemeProvider } from 'styled-components';
 
-export default class App extends React.Component { 
+class App extends React.Component { 
+  data = {"hello":"hello"};
   pages = {"TablePage": TablePage};
   state = {currentPage: null};
 
@@ -14,10 +17,21 @@ export default class App extends React.Component {
   
   render() {
     return (
-      <div className="App">
-        <NavBar id="menu" context={this}></NavBar>
-        {this.state.currentPage}
-      </div>
+      <ThemeProvider theme={theme}>
+      <Context.Provider value={this}>
+        <div className="App">
+          <NavBar id="menu" context={this}></NavBar>
+          {this.state.currentPage}
+        </div>
+      </Context.Provider>
+      </ThemeProvider>
     );
   }
 }
+
+const theme = {
+  fg: "yellow",
+  bg: "white"
+};
+
+export default App;
