@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import { ThemeProvider } from 'styled-components';
 import App from './App';
-import AppContext from './AppContext';
+import AppContext, { AppContextProvider } from './AppContext';
 //import TablePage from './components/TablePage';
 
 
@@ -18,24 +18,24 @@ class AppContainer extends React.Component {
     var instance = <Zlass id={pageName} params={params}></Zlass>;
     this.setState({...this.state, currentPage: instance});
   }*/
+
+  /*
   componentDidMount() {
     this.context.app = this;
     console.log(this.context);
-  }
+  }*/
   
   render() {
     return (
-      <AppContext.Provider value={this.context}>
-      <ThemeProvider theme={this.context.theme}>
+      <AppContextProvider> 
+   
+          <App></App>
     
-      <App></App>
-      </ThemeProvider>
-      </AppContext.Provider>
+      </AppContextProvider>
     );
   }
 }
 
-AppContainer.contextType = AppContext;
-
+//AppContainer.contextType = AppContext;
 
 export default AppContainer;

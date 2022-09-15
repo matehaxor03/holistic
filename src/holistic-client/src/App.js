@@ -20,15 +20,13 @@ class App extends React.Component {
   }*/
   
   render() {
-    if(!this.context.ui) {
-      this.context.ui = this;
-    }
-
     return (
-        <div className="App">
-          <NavBar id="menu"></NavBar>
-          {this.state.currentPage}
-        </div>
+     
+          <div className="App">
+            <NavBar id="menu"></NavBar>
+            {this.context.currentPage}
+          </div>
+       
     );
   }
 }
