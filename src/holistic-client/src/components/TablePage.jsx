@@ -1,5 +1,5 @@
 import React from 'react';
-import Context from '../Context';
+//import Context from '../Context';
 import styled from "styled-components";
 
 class TablePage extends React.Component { 
@@ -15,6 +15,6 @@ const Title = styled.h1`
 `;
 
 
-TablePage.contextType = Context;
+//TablePage.contextType = Context;
 
 export default TablePage;

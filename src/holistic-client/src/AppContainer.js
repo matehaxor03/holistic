@@ -1,11 +1,12 @@
 import React from 'react';
+import { ThemeProvider } from 'styled-components';
+import App from './App';
 import AppContext from './AppContext';
-import NavBar from "./components/NavBar";
 //import TablePage from './components/TablePage';
 
 
-class App extends React.Component { 
-  data = {"hello":"hello"};
+class AppContainer extends React.Component { 
+ 
 
   //state = AppContext;
   //pages = {"TablePage": TablePage};
@@ -17,21 +18,24 @@ class App extends React.Component {
     var instance = <Zlass id={pageName} params={params}></Zlass>;
     this.setState({...this.state, currentPage: instance});
   }*/
+  componentDidMount() {
+    this.context.app = this;
+    console.log(this.context);
+  }
   
   render() {
-    if(!this.context.ui) {
-      this.context.ui = this;
-    }
-    
     return (
-        <div className="App">
-          <NavBar id="menu"></NavBar>
-          {this.context.state.currentPage}
-        </div>
+      <AppContext.Provider value={this.context}>
+      <ThemeProvider theme={this.context.theme}>
+    
+      <App></App>
+      </ThemeProvider>
+      </AppContext.Provider>
     );
   }
 }
 
-App.contextType = AppContext;
+AppContainer.contextType = AppContext;
 
-export default App;
+
+export default AppContainer;

@@ -6,10 +6,10 @@ export default class Navbar extends React.Component {
     
       return <nav className="navbar navbar-expand-lg navbar-light bg-light">
         <div className="navbar-nav">
-          <ViewTableButton id="ViewRespositoryTable" text="Respository" context={this.props.context}></ViewTableButton>
-          <ViewTableButton id="ViewDatasourceTable" text="Datasource" context={this.props.context}></ViewTableButton>
-          <ViewTableButton id="ViewKeyTable" text="Key" context={this.props.context}></ViewTableButton>
-          <ViewTableButton id="ViewUserTable" text="User" context={this.props.context}></ViewTableButton>
+          <ViewTableButton id="ViewRespositoryTable" text="Respository"></ViewTableButton>
+          <ViewTableButton id="ViewDatasourceTable" text="Datasource"></ViewTableButton>
+          <ViewTableButton id="ViewKeyTable" text="Key"></ViewTableButton>
+          <ViewTableButton id="ViewUserTable" text="User"></ViewTableButton>
         </div>
     </nav>;
    }
