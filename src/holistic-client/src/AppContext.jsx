@@ -9,7 +9,7 @@ const themeObj = {
 };
 
 var stateObj = {};
-var params = {controllers: dispatcherObj, theme: themeObj, state: stateObj};
+var params = {dispatchers: dispatcherObj, theme: themeObj, state: stateObj};
 var AppContext = React.createContext(params);
 
 export default AppContext;

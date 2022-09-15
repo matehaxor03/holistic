@@ -6,6 +6,7 @@ import NavBar from "./components/NavBar";
 
 class App extends React.Component { 
   data = {"hello":"hello"};
+  state = {};
 
   //state = AppContext;
   //pages = {"TablePage": TablePage};
@@ -22,11 +23,11 @@ class App extends React.Component {
     if(!this.context.ui) {
       this.context.ui = this;
     }
-    
+
     return (
         <div className="App">
           <NavBar id="menu"></NavBar>
-          {this.context.state.currentPage}
+          {this.state.currentPage}
         </div>
     );
   }

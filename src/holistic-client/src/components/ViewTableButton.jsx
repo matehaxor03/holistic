@@ -5,7 +5,7 @@ class ViewTableButton extends React.Component {
     
   render() {
    return (
-      <button type="button" className="btn btn-light" onClick={() => this.context.controllers.viewPage(this.context, "TablePage", {"tableName": this.props.text})}>{this.props.text}</button>);
+      <button type="button" className="btn btn-light" onClick={() => this.context.dispatchers.viewPage(this.context, {"type": "TablePage", "tableName": this.props.text})}>{this.props.text}</button>);
    }
 }
 
