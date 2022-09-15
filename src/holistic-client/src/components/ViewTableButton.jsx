@@ -1,15 +1,12 @@
 import React from 'react';
-import AppContext from '../AppContext';
+import { useDispatch } from 'react-redux'
+import { viewPage } from '../reducers/AppSlice'
 
-class ViewTableButton extends React.Component { 
-    
-  render() {
+export default function ViewTableButton (props) { 
+   const dispatch = useDispatch();
+
    return (
-      <button type="button" className="btn btn-light" onClick={() => this.context.getDispatcher().viewPage({"type": "TablePage", "tableName": this.props.text})}>{this.props.text}</button>
+      <button type="button" className="btn btn-light" onClick={() => dispatch(viewPage({"type": "TablePage", "tableName": props.text}))}>{props.text}</button>
       );
-   }
+   
 }
-
-ViewTableButton.contextType = AppContext;
-
-export default ViewTableButton;

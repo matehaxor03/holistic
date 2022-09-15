@@ -1,36 +1,28 @@
 import React from 'react';
-import AppContext from './AppContext';
+import { Provider, useSelector } from 'react-redux'
+import { SelectCurrentPage } from './reducers/AppSlice'
+import TablePage from './components/TablePage';
 import NavBar from "./components/NavBar";
-//import TablePage from './components/TablePage';
+import store from './configureStore'
 
+export default function App() { 
+  const pages = {"TablePage": TablePage }
+  const state = useSelector(SelectCurrentPage);
+  var CurrentPage = null;
 
-class App extends React.Component { 
-  data = {"hello":"hello"};
-  state = {};
+  console.log(state);
 
-  //state = AppContext;
-  //pages = {"TablePage": TablePage};
-  //state = Context;
-
-  /*
-  viewPage = (pageName, params) => {
-    var Zlass = this.pages[pageName];
-    var instance = <Zlass id={pageName} params={params}></Zlass>;
-    this.setState({...this.state, currentPage: instance});
-  }*/
-  
-  render() {
-    return (
-     
-          <div className="App">
-            <NavBar id="menu"></NavBar>
-            {this.context.currentPage}
-          </div>
-       
-    );
+  if(state) {
+    var Zlass = pages[state.type];
+    CurrentPage = <Zlass id={state.type} params={state}></Zlass>;
   }
+
+  return (
+    <Provider store={store}>
+        <div className="App">
+          <NavBar id="menu"></NavBar>
+          { CurrentPage }
+        </div>
+    </Provider>
+  );
 }
-
-App.contextType = AppContext;
-
-export default App;

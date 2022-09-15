@@ -1,5 +1,4 @@
 import React from 'react';
-//import Context from '../Context';
 import styled from "styled-components";
 
 class TablePage extends React.Component { 
@@ -14,7 +13,5 @@ const Title = styled.h1`
   background-color: ${props => props.theme.fg || "palevioletred"};;
 `;
 
-
-//TablePage.contextType = Context;
 
 export default TablePage;
