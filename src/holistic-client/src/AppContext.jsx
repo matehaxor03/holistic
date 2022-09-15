@@ -1,30 +1,33 @@
-import React, { useState, createContext} from 'react';
+import React, { createContext} from 'react';
 import Dispatcher from './processors/Dispatcher';
 
-var dispatcherObj = new Dispatcher();
+
 
 const themeObj = {
     fg: "yellow",
     bg: "white"
 };
 
-var stateObj = {};
 //var params = {dispatchers: dispatcherObj, theme: themeObj, state: stateObj};
 
 const AppContext = createContext({});
 
-export class AppContextProvider extends React.Component {
-   
+export class AppContextProvider extends React.Component {   
     updateState = (state) => {
-      console.log(state);
       this.setState({...state});
     };
 
-    state = {
-        dispatchers: dispatcherObj, 
-        theme: themeObj, 
-        state: stateObj,
-        updateState: this.updateState};
+    getDispatcher = () => {
+        if(!this.dispatcher) {
+            this.dispatcher = new Dispatcher(this);
+            this.setState({...this.state, dispatcher: this.dispatcher});
+        }
+        return this.dispatcher;
+    };
+
+    state = {updateState: this.updateState, 
+        getDispatcher: this.getDispatcher,
+        theme: themeObj};
   
     render() {
       return (

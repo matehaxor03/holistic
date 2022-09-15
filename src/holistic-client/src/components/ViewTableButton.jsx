@@ -1,12 +1,11 @@
-import React, { Fragment } from 'react';
+import React from 'react';
 import AppContext from '../AppContext';
 
 class ViewTableButton extends React.Component { 
     
   render() {
-   //console.log(this.context);
    return (
-      <button type="button" className="btn btn-light" onClick={() => this.context.dispatchers.viewPage(this.context, {"type": "TablePage", "tableName": this.props.text})}>{this.props.text}</button>
+      <button type="button" className="btn btn-light" onClick={() => this.context.getDispatcher().viewPage({"type": "TablePage", "tableName": this.props.text})}>{this.props.text}</button>
       );
    }
 }
