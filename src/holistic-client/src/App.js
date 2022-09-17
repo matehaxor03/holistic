@@ -8,9 +8,7 @@ import store from './configureStore'
 export default function App() { 
   const pages = {"TablePage": TablePage }
   const state = useSelector(SelectCurrentPage);
-  var CurrentPage = null;
-
-  console.log(state);
+  var CurrentPage = <div></div>;
 
   if(state) {
     var Zlass = pages[state.type];
