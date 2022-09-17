@@ -18,10 +18,12 @@ func ProcessRequest(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	errors := scripts.InitDB("HOLISTIC_DB_ROOT_USERNAME", "HOLISTIC_DB_ROOT_PASSWORD")
+	db, errors := scripts.ConnectToDB()
 	if errors != nil {
 		panic(fmt.Errorf("%s", errors))
 	}
+	defer db.Close()
+	fmt.Println(db)
 
 	/*
 		db_username_regex := `^[A-Za-z]+$`

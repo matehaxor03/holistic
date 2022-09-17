@@ -82,15 +82,15 @@ func validateEnvironmentVariable(environmentVariableName string, regex string) (
 	return value, nil
 }
 
-func InitDB(username_env_var string, password_env_var string) []error {
+func ConnectToDB() (*sql.DB, []error) {
 	var errors []error
 
-	db_username, db_username_err := validateEnvironmentVariable(username_env_var, `^[A-Za-z]+$`)
+	db_username, db_username_err := validateEnvironmentVariable("HOLISTIC_DB_USERNAME", `^[A-Za-z]+$`)
 	if db_username_err != nil {
 		errors = append(errors, db_username_err)
 	}
 
-	db_password, db_password_err := verifyPassword(password_env_var)
+	db_password, db_password_err := verifyPassword("HOLISTIC_DB_PASSWORD")
 	if db_password_err != nil {
 		errors = append(errors, db_password_err)
 	}
@@ -111,7 +111,7 @@ func InitDB(username_env_var string, password_env_var string) []error {
 	}
 
 	if len(errors) > 0 {
-		return errors
+		return nil, errors
 	}
 
 	db_connection_string := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", db_username, db_password, db_hostname, db_port_number, db_name)
@@ -120,16 +120,8 @@ func InitDB(username_env_var string, password_env_var string) []error {
 	if dberr != nil {
 		errors = append(errors, dberr)
 		defer db.Close()
-		return errors
+		return nil, errors
 	}
 
-	_, version_err := db.Query("SELECT VERSION()")
-	if version_err != nil {
-		errors = append(errors, version_err)
-		defer db.Close()
-		return errors
-	}
-
-	defer db.Close()
-	return nil
+	return db, nil
 }
