@@ -63,6 +63,10 @@ func InitDB(root_username_env_var string,
 		errors = append(errors, db_name_err)
 	}
 
+	if db_username == root_db_username {
+		errors = append(errors, fmt.Errorf("HOLISTIC_DB_USERNAME cannot be the same as HOLISTIC_DB_ROOT_USERNAME"))
+	}
+
 	if len(errors) > 0 {
 		return errors
 	}
@@ -104,6 +108,25 @@ func InitDB(root_username_env_var string,
 	if grant_permissions_err != nil {
 		fmt.Println("error granting permissions")
 		errors = append(errors, grant_permissions_err)
+		defer db.Close()
+		return errors
+	}
+
+	db.Close()
+
+	db_connection_string = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", db_username, db_password, db_hostname, db_port_number, db_name)
+	db, dberr = sql.Open("mysql", db_connection_string)
+
+	if dberr != nil {
+		errors = append(errors, dberr)
+		defer db.Close()
+		return errors
+	}
+
+	_, create_table_database_migration_err := db.Exec("CREATE TABLE IF NOT EXISTS database_migration (database_migration_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, current_migration BIGINT NOT NULL DEFAULT -1, desired_migration BIGINT NOT NULL DEFAULT 0, created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+	if create_table_database_migration_err != nil {
+		fmt.Println("error creating database_migration table")
+		errors = append(errors, create_table_database_migration_err)
 		defer db.Close()
 		return errors
 	}
