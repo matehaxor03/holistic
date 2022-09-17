@@ -78,6 +78,7 @@ func InitDB(root_username_env_var string,
 
 	_, database_creation_err := db.Exec("CREATE DATABASE IF NOT EXISTS " + db_name)
 	if database_creation_err != nil {
+		fmt.Println("error creating database")
 		errors = append(errors, database_creation_err)
 		defer db.Close()
 		return errors
@@ -91,7 +92,7 @@ func InitDB(root_username_env_var string,
 		return errors
 	}
 
-	_, create_user_err := db.Exec("CREATE USER '" + db_username + "'@'%' IDENTIFIED BY '" + db_password + "'")
+	_, create_user_err := db.Exec("CREATE USER IF NOT EXISTS '" + db_username + "'@'%' IDENTIFIED BY '" + db_password + "'")
 	if create_user_err != nil {
 		fmt.Println("error creating user")
 		errors = append(errors, create_user_err)
