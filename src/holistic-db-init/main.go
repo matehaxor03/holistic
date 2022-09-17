@@ -131,6 +131,37 @@ func InitDB(root_username_env_var string,
 		return errors
 	}
 
+	db_results, count_err := db.Query("SELECT COUNT(*) FROM database_migration")
+	if count_err != nil {
+		fmt.Println("error fetching count of records for database_migration")
+		errors = append(errors, count_err)
+		defer db.Close()
+		return errors
+	}
+	defer db_results.Close()
+	var count int
+
+	for db_results.Next() {
+		if err := db_results.Scan(&count); err != nil {
+			errors = append(errors, err)
+			defer db.Close()
+			return errors
+		}
+	}
+
+	if count > 0 {
+		defer db.Close()
+		return nil
+	}
+
+	_, insert_record_database_migration_err := db.Exec("INSERT INTO database_migration () VALUES ()")
+	if insert_record_database_migration_err != nil {
+		fmt.Println("error inserting record into database_migration")
+		errors = append(errors, insert_record_database_migration_err)
+		defer db.Close()
+		return errors
+	}
+
 	defer db.Close()
 	return nil
 }
