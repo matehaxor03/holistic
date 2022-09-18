@@ -116,7 +116,7 @@ func InitDB(root_username_env_var string,
 		return errors
 	}
 
-	_, database_creation_err := db.Exec("CREATE DATABASE IF NOT EXISTS " + db_name)
+	_, database_creation_err := db.Exec("CREATE DATABASE IF NOT EXISTS " + db_name + " CHARACTER SET utf8 COLLATE utf8_general_ci")
 	if database_creation_err != nil {
 		fmt.Println("error creating database")
 		errors = append(errors, database_creation_err)
