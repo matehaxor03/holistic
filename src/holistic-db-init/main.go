@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 
+	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -36,62 +38,53 @@ func InitDB(root_username_env_var string,
 	password_read_env_var string) []error {
 	var errors []error
 
-	root_db_username, root_db_username_err := validateEnvironmentVariable(root_username_env_var, `^[A-Za-z]+$`)
-	if root_db_username_err != nil {
-		errors = append(errors, root_db_username_err)
+	root_db_username, root_db_password := getCredentials("ROOT")
+	root_db_credentials_errs := validateCredentials(root_db_username, root_db_password)
+
+	if root_db_credentials_errs != nil {
+		errors = append(errors, root_db_credentials_errs...)
 	}
 
-	root_db_password, root_db_password_err := verifyPassword(root_password_env_var)
-	if root_db_password_err != nil {
-		errors = append(errors, root_db_password_err)
+	migration_db_username, migration_db_password := getCredentials("MIGRATION")
+	migration_db_credentials_errs := validateCredentials(migration_db_username, migration_db_password)
+
+	if migration_db_credentials_errs != nil {
+		errors = append(errors, migration_db_credentials_errs...)
 	}
 
-	db_username_migration, db_username_migration_err := validateEnvironmentVariable(username_migration_env_var, `^[A-Za-z]+$`)
-	if db_username_migration_err != nil {
-		errors = append(errors, db_username_migration_err)
+	write_db_username, write_db_password := getCredentials("WRITE")
+	write_db_credentials_errs := validateCredentials(write_db_username, write_db_password)
+
+	if write_db_credentials_errs != nil {
+		errors = append(errors, write_db_credentials_errs...)
 	}
 
-	db_password_migration, db_password_migration_err := verifyPassword(password_migration_env_var)
-	if db_password_migration_err != nil {
-		errors = append(errors, db_password_migration_err)
+	read_db_username, read_db_password := getCredentials("READ")
+	read_db_credentials_errs := validateCredentials(read_db_username, read_db_password)
+
+	if read_db_credentials_errs != nil {
+		errors = append(errors, read_db_credentials_errs...)
 	}
 
-	db_username_write, db_username_write_err := validateEnvironmentVariable(username_write_env_var, `^[A-Za-z]+$`)
-	if db_username_write_err != nil {
-		errors = append(errors, db_username_write_err)
+	db_hostname := getDatabaseHostname()
+	db_hostname_errors := validateHostname(db_hostname)
+	if db_hostname_errors != nil {
+		errors = append(errors, db_hostname_errors...)
 	}
 
-	db_password_write, db_password_write_err := verifyPassword(password_write_env_var)
-	if db_password_write_err != nil {
-		errors = append(errors, db_password_write_err)
-	}
-
-	db_username_read, db_username_read_err := validateEnvironmentVariable(username_read_env_var, `^[A-Za-z]+$`)
-	if db_username_read_err != nil {
-		errors = append(errors, db_username_read_err)
-	}
-
-	db_password_read, db_password_read_err := verifyPassword(password_read_env_var)
-	if db_password_read_err != nil {
-		errors = append(errors, db_password_read_err)
-	}
-
-	db_hostname, db_hostname_err := validateEnvironmentVariable("HOLISTIC_DB_HOSTNAME", `^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`)
-	if db_hostname_err != nil {
-		errors = append(errors, db_hostname_err)
-	}
-
-	db_port_number, db_port_number_err := validateEnvironmentVariable("HOLISTIC_DB_PORT_NUMBER", `\d+`)
+	db_port_number := getPortNumber()
+	db_port_number_err := validatePortNumber(db_port_number)
 	if db_port_number_err != nil {
-		errors = append(errors, db_port_number_err)
+		errors = append(errors, db_port_number_err...)
 	}
 
-	db_name, db_name_err := validateEnvironmentVariable("HOLISTIC_DB_NAME", `^[A-Za-z]+$`)
+	db_name := getDatabaseName()
+	db_name_err := validateDatabaseName(db_name)
 	if db_name_err != nil {
-		errors = append(errors, db_name_err)
+		errors = append(errors, db_name_err...)
 	}
 
-	usernames := [...]string{root_db_username, db_username_migration, db_username_write, db_username_read}
+	usernames := [...]string{root_db_username, migration_db_username, write_db_username, read_db_username}
 
 	usernamesGrouped := make(map[string]int)
 	for _, num := range usernames {
@@ -108,8 +101,14 @@ func InitDB(root_username_env_var string,
 		return errors
 	}
 
-	db_connection_string := fmt.Sprintf("%s:%s@tcp(%s:%s)/", root_db_username, root_db_password, db_hostname, db_port_number)
-	db, dberr := sql.Open("mysql", db_connection_string)
+	cfg_root := mysql.Config{
+		User:   root_db_username,
+		Passwd: root_db_password,
+		Net:    "tcp",
+		Addr:   db_hostname + ":" + db_port_number,
+	}
+	//db_connection_string := fmt.Sprintf("%s:%s@tcp(%s:%s)/", root_db_username, root_db_password, db_hostname, db_port_number)
+	db, dberr := sql.Open("mysql", cfg_root.FormatDSN())
 
 	if dberr != nil {
 		errors = append(errors, dberr)
@@ -125,7 +124,7 @@ func InitDB(root_username_env_var string,
 		return errors
 	}
 
-	_, create_user_migration_err := db.Exec("CREATE USER IF NOT EXISTS '" + db_username_migration + "'@'%' IDENTIFIED BY '" + db_password_migration + "'")
+	_, create_user_migration_err := db.Exec("CREATE USER IF NOT EXISTS '" + migration_db_username + "'@'%' IDENTIFIED BY '" + migration_db_password + "'")
 	if create_user_migration_err != nil {
 		fmt.Println("error creating migration user")
 		errors = append(errors, create_user_migration_err)
@@ -133,7 +132,7 @@ func InitDB(root_username_env_var string,
 		return errors
 	}
 
-	_, grant_user_migration_permissions_err := db.Exec("GRANT ALL ON " + db_name + ".* To '" + db_username_migration + "'@'%'")
+	_, grant_user_migration_permissions_err := db.Exec("GRANT ALL ON " + db_name + ".* To '" + migration_db_username + "'@'%'")
 	if grant_user_migration_permissions_err != nil {
 		fmt.Println("error granting migration user permissions")
 		errors = append(errors, grant_user_migration_permissions_err)
@@ -141,7 +140,7 @@ func InitDB(root_username_env_var string,
 		return errors
 	}
 
-	_, create_user_write_err := db.Exec("CREATE USER IF NOT EXISTS '" + db_username_write + "'@'%' IDENTIFIED BY '" + db_password_write + "'")
+	_, create_user_write_err := db.Exec("CREATE USER IF NOT EXISTS '" + write_db_username + "'@'%' IDENTIFIED BY '" + write_db_password + "'")
 	if create_user_write_err != nil {
 		fmt.Println("error creating write user")
 		errors = append(errors, create_user_write_err)
@@ -149,7 +148,7 @@ func InitDB(root_username_env_var string,
 		return errors
 	}
 
-	_, grant_user_write_permissions_err := db.Exec("GRANT INSERT, UPDATE ON " + db_name + ".* To '" + db_username_write + "'@'%'")
+	_, grant_user_write_permissions_err := db.Exec("GRANT INSERT, UPDATE ON " + db_name + ".* To '" + write_db_username + "'@'%'")
 	if grant_user_write_permissions_err != nil {
 		fmt.Println("error granting write user permissions")
 		errors = append(errors, grant_user_write_permissions_err)
@@ -157,7 +156,7 @@ func InitDB(root_username_env_var string,
 		return errors
 	}
 
-	_, create_user_read_err := db.Exec("CREATE USER IF NOT EXISTS '" + db_username_read + "'@'%' IDENTIFIED BY '" + db_password_read + "'")
+	_, create_user_read_err := db.Exec("CREATE USER IF NOT EXISTS '" + read_db_username + "'@'%' IDENTIFIED BY '" + read_db_password + "'")
 	if create_user_read_err != nil {
 		fmt.Println("error creating read user")
 		errors = append(errors, create_user_read_err)
@@ -165,7 +164,7 @@ func InitDB(root_username_env_var string,
 		return errors
 	}
 
-	_, grant_user_read_permissions_err := db.Exec("GRANT SELECT ON " + db_name + ".* To '" + db_username_read + "'@'%'")
+	_, grant_user_read_permissions_err := db.Exec("GRANT SELECT ON " + db_name + ".* To '" + read_db_username + "'@'%'")
 	if grant_user_read_permissions_err != nil {
 		fmt.Println("error granting read user permissions")
 		errors = append(errors, grant_user_read_permissions_err)
@@ -175,8 +174,16 @@ func InitDB(root_username_env_var string,
 
 	db.Close()
 
-	db_connection_string = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", db_username_migration, db_password_migration, db_hostname, db_port_number, db_name)
-	db, dberr = sql.Open("mysql", db_connection_string)
+	cfg_migration := mysql.Config{
+		User:   migration_db_username,
+		Passwd: migration_db_password,
+		Net:    "tcp",
+		Addr:   db_hostname + ":" + db_port_number,
+		DBName: db_name,
+	}
+
+	//db_connection_string = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", migration_db_username, migration_db_password, db_hostname, db_port_number, db_name)
+	db, dberr = sql.Open("mysql", cfg_migration.FormatDSN())
 
 	if dberr != nil {
 		errors = append(errors, dberr)
@@ -227,31 +234,135 @@ func InitDB(root_username_env_var string,
 	return nil
 }
 
-func validateEnvironmentVariable(environmentVariableName string, regex string) (string, error) {
-	regex_matcher, err := regexp.Compile(regex)
-	if err != nil {
-		return "", err
-	}
-
-	value := os.Getenv(environmentVariableName)
-	if !regex_matcher.MatchString(value) {
-		return "", fmt.Errorf("%s environment variable contains invalid characters: %s regex: %s", environmentVariableName, value, regex)
-	}
-
-	return value, nil
+func getDatabaseName() string {
+	return os.Getenv("HOLISTIC_DB_NAME")
 }
 
-func verifyPassword(password_env_var string) (string, error) {
+func validateDatabaseName(db_name string) []error {
+	var errors []error
+	db_name_regex_name_exp := `^[A-Za-z]+$`
+	db_name_regex_name_matcher, db_name_regex_name_matcher_errors := regexp.Compile(db_name_regex_name_exp)
+	if db_name_regex_name_matcher_errors != nil {
+		errors = append(errors, fmt.Errorf("database name regex %s did not compile %s", db_name_regex_name_exp, db_name_regex_name_matcher_errors.Error()))
+		return errors
+	}
+
+	if !db_name_regex_name_matcher.MatchString(db_name) {
+		errors = append(errors, fmt.Errorf("database name %s did not match regex %s", db_name, db_name_regex_name_exp))
+	}
+
+	if len(errors) > 0 {
+		return errors
+	}
+
+	return nil
+}
+
+func getPortNumber() string {
+	return os.Getenv("HOLISTIC_DB_PORT_NUMBER")
+}
+
+func validatePortNumber(db_port_number string) []error {
+	var errors []error
+	portnumber_regex_name_exp := `\d+`
+	portnumber_regex_name_matcher, port_number_regex_name_matcher_errors := regexp.Compile(portnumber_regex_name_exp)
+	if port_number_regex_name_matcher_errors != nil {
+		errors = append(errors, fmt.Errorf("portnumber regex %s did not compile %s", portnumber_regex_name_exp, port_number_regex_name_matcher_errors.Error()))
+		return errors
+	}
+
+	if !portnumber_regex_name_matcher.MatchString(db_port_number) {
+		errors = append(errors, fmt.Errorf("portnumber %s did not match regex %s", db_port_number, portnumber_regex_name_exp))
+	}
+
+	if len(errors) > 0 {
+		return errors
+	}
+
+	return nil
+}
+
+func getDatabaseHostname() string {
+	return os.Getenv("HOLISTIC_DB_HOSTNAME")
+}
+
+func validateHostname(db_hostname string) []error {
+	var errors []error
+
+	simpleHostname := false
+	ipAddress := true
+	complexHostname := true
+
+	hostname_regex_name_exp := `^[A-Za-z]+$`
+	hostname_regex_name_matcher, hostname_regex_name_matcher_errors := regexp.Compile(hostname_regex_name_exp)
+	if hostname_regex_name_matcher_errors != nil {
+		errors = append(errors, fmt.Errorf("username regex %s did not compile %s", hostname_regex_name_exp, hostname_regex_name_matcher_errors.Error()))
+	}
+
+	simpleHostname = hostname_regex_name_matcher.MatchString(db_hostname)
+
+	parts := strings.Split(db_hostname, ".")
+	if len(parts) == 4 {
+		for _, value := range parts {
+			_, err := strconv.Atoi(value)
+			if err != nil {
+				ipAddress = false
+			}
+		}
+	}
+
+	for _, value := range parts {
+		if !hostname_regex_name_matcher.MatchString(value) {
+			complexHostname = false
+		}
+	}
+
+	if !(simpleHostname || complexHostname || ipAddress) {
+		errors = append(errors, fmt.Errorf("hostname name is invalid %s", db_hostname))
+	}
+
+	if len(errors) > 0 {
+		return errors
+	}
+
+	return nil
+}
+
+func getCredentials(label string) (string, string) {
+	username := os.Getenv("HOLISTIC_DB_" + label + "_USERNAME")
+	password := os.Getenv("HOLISTIC_DB_" + label + "_PASSWORD")
+	return username, password
+}
+
+func validateCredentials(username string, password string) []error {
+	var errors []error
+
+	username_regex_exp := `^[A-Za-z]+$`
+	username_regex_matcher, username_regex_errors := regexp.Compile(username_regex_exp)
+	if username_regex_errors != nil {
+		errors = append(errors, fmt.Errorf("username regex %s did not compile %s", username_regex_exp, username_regex_errors.Error()))
+	}
+
+	if !username_regex_matcher.MatchString(username) {
+		errors = append(errors, fmt.Errorf("username %s did not match regex %s", username, username_regex_exp))
+	}
+
+	password_errors := validatePassword(password)
+	if password_errors != nil {
+		errors = append(errors, password_errors...)
+	}
+
+	return errors
+}
+
+func validatePassword(password string) []error {
 	var uppercasePresent bool
 	var lowercasePresent bool
 	var numberPresent bool
 	var specialCharPresent bool
 	const minPassLength = 8
-	const maxPassLength = 64
 	var passLen int
-	var errorString string
-
-	password := os.Getenv(password_env_var)
+	var errors []error
 
 	for _, ch := range password {
 		switch {
@@ -270,32 +381,26 @@ func verifyPassword(password_env_var string) (string, error) {
 		}
 	}
 
-	appendError := func(err string) {
-		if len(strings.TrimSpace(errorString)) != 0 {
-			errorString += ", " + err
-		} else {
-			errorString = err
-		}
-	}
-
 	if !lowercasePresent {
-		appendError("lowercase letter missing")
+		errors = append(errors, fmt.Errorf("lowercase letter missing"))
 	}
 	if !uppercasePresent {
-		appendError("uppercase letter missing")
+		errors = append(errors, fmt.Errorf("uppercase letter missing"))
 	}
 	if !numberPresent {
-		appendError("at least one numeric character required")
+		errors = append(errors, fmt.Errorf("at least one numeric character required"))
 	}
 	if !specialCharPresent {
-		appendError("special character missing")
+		errors = append(errors, fmt.Errorf("at least one special character required"))
+
 	}
-	if !(minPassLength <= passLen && passLen <= maxPassLength) {
-		appendError(fmt.Sprintf("password length must be between %d to %d characters long", minPassLength, maxPassLength))
+	if passLen <= minPassLength {
+		errors = append(errors, fmt.Errorf("password length must be at least %d characters long", minPassLength))
 	}
 
-	if len(errorString) != 0 {
-		return "", fmt.Errorf("%s %s", password_env_var, errorString)
+	if len(errors) > 0 {
+		return errors
 	}
-	return password, nil
+
+	return nil
 }
