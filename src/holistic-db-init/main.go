@@ -100,7 +100,7 @@ func InitDB(root_username_env_var string,
 
 	for key, element := range usernamesGrouped {
 		if element > 1 {
-			errors = append(errors, fmt.Errorf("database usernames must all be unique: %s database username was detected %d times", key, element))
+			errors = append(errors, fmt.Errorf("%s database username was detected %d times - root, migration, write and read database usernames must be all unqiue", key, element))
 		}
 	}
 
