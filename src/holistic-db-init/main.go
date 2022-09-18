@@ -14,8 +14,10 @@ import (
 func main() {
 	errors := InitDB("HOLISTIC_DB_ROOT_USERNAME",
 		"HOLISTIC_DB_ROOT_PASSWORD",
-		"HOLISTIC_DB_USERNAME",
-		"HOLISTIC_DB_PASSWORD")
+		"HOLISTIC_DB_MIGRATION_USERNAME",
+		"HOLISTIC_DB_MIGRATION_PASSWORD",
+		"HOLISTIC_DB_WRITE_USERNAME",
+		"HOLISTIC_DB_WRITE_PASSWORD")
 	if errors != nil {
 		panic(fmt.Errorf("%s", errors))
 	}
@@ -24,8 +26,10 @@ func main() {
 
 func InitDB(root_username_env_var string,
 	root_password_env_var string,
-	username_env_var string,
-	password_env_var string) []error {
+	username_migration_env_var string,
+	password_migration_env_var string,
+	username_write_env_var string,
+	password_write_env_var string) []error {
 	var errors []error
 
 	root_db_username, root_db_username_err := validateEnvironmentVariable(root_username_env_var, `^[A-Za-z]+$`)
@@ -38,14 +42,24 @@ func InitDB(root_username_env_var string,
 		errors = append(errors, root_db_password_err)
 	}
 
-	db_username, db_username_err := validateEnvironmentVariable(username_env_var, `^[A-Za-z]+$`)
-	if db_username_err != nil {
-		errors = append(errors, db_username_err)
+	db_username_migration, db_username_migration_err := validateEnvironmentVariable(username_migration_env_var, `^[A-Za-z]+$`)
+	if db_username_migration_err != nil {
+		errors = append(errors, db_username_migration_err)
 	}
 
-	db_password, db_password_err := verifyPassword(password_env_var)
-	if db_password_err != nil {
-		errors = append(errors, db_password_err)
+	db_password_migration, db_password_migration_err := verifyPassword(password_migration_env_var)
+	if db_password_migration_err != nil {
+		errors = append(errors, db_password_migration_err)
+	}
+
+	db_username_write, db_username_write_err := validateEnvironmentVariable(username_write_env_var, `^[A-Za-z]+$`)
+	if db_username_write_err != nil {
+		errors = append(errors, db_username_write_err)
+	}
+
+	db_password_write, db_password_write_err := verifyPassword(password_write_env_var)
+	if db_password_write_err != nil {
+		errors = append(errors, db_password_write_err)
 	}
 
 	db_hostname, db_hostname_err := validateEnvironmentVariable("HOLISTIC_DB_HOSTNAME", `^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`)
@@ -63,8 +77,8 @@ func InitDB(root_username_env_var string,
 		errors = append(errors, db_name_err)
 	}
 
-	if db_username == root_db_username {
-		errors = append(errors, fmt.Errorf("HOLISTIC_DB_USERNAME cannot be the same as HOLISTIC_DB_ROOT_USERNAME"))
+	if db_username_write == root_db_username {
+		errors = append(errors, fmt.Errorf("HOLISTIC_DB_WRITE_USERNAME cannot be the same as HOLISTIC_DB_ROOT_USERNAME"))
 	}
 
 	if len(errors) > 0 {
@@ -88,33 +102,41 @@ func InitDB(root_username_env_var string,
 		return errors
 	}
 
-	_, drop_user_err := db.Exec("DROP USER '" + db_username + "'@'%';")
-	if drop_user_err != nil {
-		fmt.Println("error dropping user")
-		errors = append(errors, drop_user_err)
+	_, create_user_migration_err := db.Exec("CREATE USER IF NOT EXISTS '" + db_username_migration + "'@'%' IDENTIFIED BY '" + db_password_migration + "'")
+	if create_user_migration_err != nil {
+		fmt.Println("error creating migration user")
+		errors = append(errors, create_user_migration_err)
 		defer db.Close()
 		return errors
 	}
 
-	_, create_user_err := db.Exec("CREATE USER IF NOT EXISTS '" + db_username + "'@'%' IDENTIFIED BY '" + db_password + "'")
-	if create_user_err != nil {
-		fmt.Println("error creating user")
-		errors = append(errors, create_user_err)
+	_, grant_user_migration_permissions_err := db.Exec("GRANT ALL ON " + db_name + ".* To '" + db_username_migration + "'@'%'")
+	if grant_user_migration_permissions_err != nil {
+		fmt.Println("error granting migration user permissions")
+		errors = append(errors, grant_user_migration_permissions_err)
 		defer db.Close()
 		return errors
 	}
 
-	_, grant_permissions_err := db.Exec("GRANT ALL ON " + db_name + ".* To '" + db_username + "'@'%'")
-	if grant_permissions_err != nil {
-		fmt.Println("error granting permissions")
-		errors = append(errors, grant_permissions_err)
+	_, create_user_write_err := db.Exec("CREATE USER IF NOT EXISTS '" + db_username_write + "'@'%' IDENTIFIED BY '" + db_password_write + "'")
+	if create_user_write_err != nil {
+		fmt.Println("error creating write user")
+		errors = append(errors, create_user_write_err)
+		defer db.Close()
+		return errors
+	}
+
+	_, grant_user_write_permissions_err := db.Exec("GRANT INSERT, UPDATE ON " + db_name + ".* To '" + db_username_write + "'@'%'")
+	if grant_user_write_permissions_err != nil {
+		fmt.Println("error granting write user permissions")
+		errors = append(errors, grant_user_write_permissions_err)
 		defer db.Close()
 		return errors
 	}
 
 	db.Close()
 
-	db_connection_string = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", db_username, db_password, db_hostname, db_port_number, db_name)
+	db_connection_string = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", db_username_migration, db_password_migration, db_hostname, db_port_number, db_name)
 	db, dberr = sql.Open("mysql", db_connection_string)
 
 	if dberr != nil {
