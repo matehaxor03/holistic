@@ -17,7 +17,9 @@ func main() {
 		"HOLISTIC_DB_MIGRATION_USERNAME",
 		"HOLISTIC_DB_MIGRATION_PASSWORD",
 		"HOLISTIC_DB_WRITE_USERNAME",
-		"HOLISTIC_DB_WRITE_PASSWORD")
+		"HOLISTIC_DB_WRITE_PASSWORD",
+		"HOLISTIC_DB_READ_USERNAME",
+		"HOLISTIC_DB_READ_PASSWORD")
 	if errors != nil {
 		panic(fmt.Errorf("%s", errors))
 	}
@@ -29,7 +31,9 @@ func InitDB(root_username_env_var string,
 	username_migration_env_var string,
 	password_migration_env_var string,
 	username_write_env_var string,
-	password_write_env_var string) []error {
+	password_write_env_var string,
+	username_read_env_var string,
+	password_read_env_var string) []error {
 	var errors []error
 
 	root_db_username, root_db_username_err := validateEnvironmentVariable(root_username_env_var, `^[A-Za-z]+$`)
@@ -62,6 +66,16 @@ func InitDB(root_username_env_var string,
 		errors = append(errors, db_password_write_err)
 	}
 
+	db_username_read, db_username_read_err := validateEnvironmentVariable(username_read_env_var, `^[A-Za-z]+$`)
+	if db_username_read_err != nil {
+		errors = append(errors, db_username_read_err)
+	}
+
+	db_password_read, db_password_read_err := verifyPassword(password_read_env_var)
+	if db_password_read_err != nil {
+		errors = append(errors, db_password_read_err)
+	}
+
 	db_hostname, db_hostname_err := validateEnvironmentVariable("HOLISTIC_DB_HOSTNAME", `^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`)
 	if db_hostname_err != nil {
 		errors = append(errors, db_hostname_err)
@@ -77,8 +91,16 @@ func InitDB(root_username_env_var string,
 		errors = append(errors, db_name_err)
 	}
 
+	if db_username_migration == root_db_username {
+		errors = append(errors, fmt.Errorf("HOLISTIC_DB_MIGRATION_USERNAME cannot be the same as HOLISTIC_DB_ROOT_USERNAME"))
+	}
+
 	if db_username_write == root_db_username {
 		errors = append(errors, fmt.Errorf("HOLISTIC_DB_WRITE_USERNAME cannot be the same as HOLISTIC_DB_ROOT_USERNAME"))
+	}
+
+	if db_username_read == root_db_username {
+		errors = append(errors, fmt.Errorf("HOLISTIC_DB_READ_USERNAME cannot be the same as HOLISTIC_DB_ROOT_USERNAME"))
 	}
 
 	if len(errors) > 0 {
@@ -130,6 +152,22 @@ func InitDB(root_username_env_var string,
 	if grant_user_write_permissions_err != nil {
 		fmt.Println("error granting write user permissions")
 		errors = append(errors, grant_user_write_permissions_err)
+		defer db.Close()
+		return errors
+	}
+
+	_, create_user_read_err := db.Exec("CREATE USER IF NOT EXISTS '" + db_username_read + "'@'%' IDENTIFIED BY '" + db_password_read + "'")
+	if create_user_read_err != nil {
+		fmt.Println("error creating read user")
+		errors = append(errors, create_user_read_err)
+		defer db.Close()
+		return errors
+	}
+
+	_, grant_user_read_permissions_err := db.Exec("GRANT SELECT ON " + db_name + ".* To '" + db_username_read + "'@'%'")
+	if grant_user_read_permissions_err != nil {
+		fmt.Println("error granting read user permissions")
+		errors = append(errors, grant_user_read_permissions_err)
 		defer db.Close()
 		return errors
 	}
