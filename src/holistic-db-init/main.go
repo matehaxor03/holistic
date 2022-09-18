@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"regexp"
@@ -14,28 +15,14 @@ import (
 )
 
 func main() {
-	errors := InitDB("HOLISTIC_DB_ROOT_USERNAME",
-		"HOLISTIC_DB_ROOT_PASSWORD",
-		"HOLISTIC_DB_MIGRATION_USERNAME",
-		"HOLISTIC_DB_MIGRATION_PASSWORD",
-		"HOLISTIC_DB_WRITE_USERNAME",
-		"HOLISTIC_DB_WRITE_PASSWORD",
-		"HOLISTIC_DB_READ_USERNAME",
-		"HOLISTIC_DB_READ_PASSWORD")
+	errors := InitDB()
 	if errors != nil {
 		panic(fmt.Errorf("%s", errors))
 	}
 
 }
 
-func InitDB(root_username_env_var string,
-	root_password_env_var string,
-	username_migration_env_var string,
-	password_migration_env_var string,
-	username_write_env_var string,
-	password_write_env_var string,
-	username_read_env_var string,
-	password_read_env_var string) []error {
+func InitDB() []error {
 	var errors []error
 
 	root_db_username, root_db_password := getCredentials("ROOT")
@@ -97,6 +84,11 @@ func InitDB(root_username_env_var string,
 		}
 	}
 
+	root_db_password = base64.StdEncoding.EncodeToString([]byte(root_db_password))
+	migration_db_password = base64.StdEncoding.EncodeToString([]byte(migration_db_password))
+	write_db_password = base64.StdEncoding.EncodeToString([]byte(migration_db_password))
+	read_db_password = base64.StdEncoding.EncodeToString([]byte(migration_db_password))
+
 	if len(errors) > 0 {
 		return errors
 	}
@@ -107,7 +99,7 @@ func InitDB(root_username_env_var string,
 		Net:    "tcp",
 		Addr:   db_hostname + ":" + db_port_number,
 	}
-	//db_connection_string := fmt.Sprintf("%s:%s@tcp(%s:%s)/", root_db_username, root_db_password, db_hostname, db_port_number)
+
 	db, dberr := sql.Open("mysql", cfg_root.FormatDSN())
 
 	if dberr != nil {
@@ -182,7 +174,6 @@ func InitDB(root_username_env_var string,
 		DBName: db_name,
 	}
 
-	//db_connection_string = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", migration_db_username, migration_db_password, db_hostname, db_port_number, db_name)
 	db, dberr = sql.Open("mysql", cfg_migration.FormatDSN())
 
 	if dberr != nil {
