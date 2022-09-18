@@ -91,16 +91,17 @@ func InitDB(root_username_env_var string,
 		errors = append(errors, db_name_err)
 	}
 
-	if db_username_migration == root_db_username {
-		errors = append(errors, fmt.Errorf("HOLISTIC_DB_MIGRATION_USERNAME cannot be the same as HOLISTIC_DB_ROOT_USERNAME"))
+	usernames := [...]string{root_db_username, db_username_migration, db_username_write, db_username_read}
+
+	usernamesGrouped := make(map[string]int)
+	for _, num := range usernames {
+		usernamesGrouped[num] = usernamesGrouped[num] + 1
 	}
 
-	if db_username_write == root_db_username {
-		errors = append(errors, fmt.Errorf("HOLISTIC_DB_WRITE_USERNAME cannot be the same as HOLISTIC_DB_ROOT_USERNAME"))
-	}
-
-	if db_username_read == root_db_username {
-		errors = append(errors, fmt.Errorf("HOLISTIC_DB_READ_USERNAME cannot be the same as HOLISTIC_DB_ROOT_USERNAME"))
+	for key, element := range usernamesGrouped {
+		if element > 1 {
+			errors = append(errors, fmt.Errorf("database usernames must all be unique: %s database username was detected %s times", key, element))
+		}
 	}
 
 	if len(errors) > 0 {
