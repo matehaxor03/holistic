@@ -5,12 +5,12 @@ import (
 )
 
 type Host struct {
-    host *string
+    host_name *string
 	port *string
 }
 
-func NewHost(host *string, port *string) (*Host) {
-	x := Host{host: host, port: port}
+func NewHost(host_name *string, port *string) (*Host) {
+	x := Host{host_name: host_name, port: port}
 
 	return &x
 }
@@ -18,14 +18,14 @@ func NewHost(host *string, port *string) (*Host) {
 func (this *Host) Validate() []error {
 	var errors []error 
 
-	host_errs := this.ValidateHost()
+	host_errs := (*this).ValidateHostname()
 
 	if host_errs != nil {
 		errors = append(errors, host_errs...)	
 	}
 
 
-	port_errs := this.ValidatePort()
+	port_errs :=  (*this).ValidatePort()
 
 	if port_errs != nil {
 		errors = append(errors, port_errs...)	
@@ -38,16 +38,16 @@ func (this *Host) Validate() []error {
 	return nil
 }
 
-func (this *Host) ValidateHost() ([]error) {
+func (this *Host) ValidateHostname() ([]error) {
 	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789."
 	var errors []error 
 
-	if (*this).host == nil || *((*this).host) == "" {
+	if (*this).host_name == nil || *((*this).host_name) == "" {
 		errors = append(errors, fmt.Errorf("host cannot have an empty value"))
 		return errors
 	}
 
-	return this.ValidateCharacters(VALID_CHARACTERS, (*this).host)
+	return this.ValidateCharacters(VALID_CHARACTERS, (*this).host_name)
 }
 
 func (this *Host) ValidatePort() ([]error) {

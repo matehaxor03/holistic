@@ -5,6 +5,7 @@ import (
 )
 
 type Database struct {
+	host *Host
     db_name *string
 	character_set *string
 	collate *string
@@ -12,8 +13,8 @@ type Database struct {
 	COLLATES *[]string
 }
 
-func NewDatabase(db_name *string, character_set *string, collate *string) (*Database) {
-	x := Database{db_name: db_name, character_set: character_set, collate: collate}
+func NewDatabase(host *Host, db_name *string, character_set *string, collate *string) (*Database) {
+	x := Database{host: host, db_name: db_name, character_set: character_set, collate: collate}
 	
 	ARRAY_CHARACTER_SETS := []string{"utf8"}
 	x.CHARACTER_SETS = &ARRAY_CHARACTER_SETS
@@ -25,6 +26,12 @@ func NewDatabase(db_name *string, character_set *string, collate *string) (*Data
 
 func (this *Database) Validate() []error {
 	var errors []error 
+
+	host_errs := this.ValidateHost()
+
+	if host_errs != nil {
+		errors = append(errors, host_errs...)	
+	}
 
 	db_name_errs := this.ValidateDatabaseName()
 
@@ -51,16 +58,34 @@ func (this *Database) Validate() []error {
 	return nil
 }
 
+func (this *Database) ValidateHost()  ([]error) {
+	var errors []error 
+	if (*this).host == nil {
+		errors = append(errors, fmt.Errorf("host is nil"))
+		return errors
+	}
+
+	return (*((*this).host)).Validate()
+}
+
 func (this *Database) ValidateDatabaseName() ([]error) {
 	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	return this.ValidateCharacters(VALID_CHARACTERS, (*this).db_name)
 }
 
 func (this *Database) ValidateCharacterSet() ([]error) {
+	if  (*this).character_set = nil {
+		return nil
+	}
+
 	return (*this).contains((*this).CHARACTER_SETS, (*this).character_set)
 }
 
 func (this *Database) ValidateCollate() ([]error) {
+	if (*this).collate = nil {
+		return nil
+	}
+
 	return (*this).contains((*this).COLLATES, (*this).collate)
 }
 

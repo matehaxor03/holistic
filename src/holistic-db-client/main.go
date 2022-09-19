@@ -48,16 +48,17 @@ func main() {
 	character_set_value, _ := params[CLS_CHARACTER_SET]
 	collate_value, _ := params[CLS_COLLATE]
 
-	creds :=  class.NewCredentials(&user_value, &password_value)
-	creds.Validate()
-	
+
 	host := class.NewHost(&host_value, &port_value)
 	host.Validate()
 
-	database := class.NewDatabase(&db_name_value, &character_set_value, &collate_value)
+	creds :=  class.NewCredentials(&user_value, &password_value)
+	creds.Validate()
+
+	database := class.NewDatabase(host, &db_name_value, &character_set_value, &collate_value)
 	database.Validate()
 
-	client := class.NewClient(host, creds, database)
+	client := class.NewClient()
 	fmt.Println(fmt.Errorf("%s", client))
 
 
