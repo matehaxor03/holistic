@@ -7,17 +7,30 @@ import (
 )
 
 func main() {
-
-	_, errors := getParams(os.Args[1:])
+	const COMMAND string = "command"
+	var COMMANDS = []string{"CREATE"}
+	
+    params, errors := getParams(os.Args[1:])
 	if errors != nil {
 		fmt.Println(fmt.Errorf("%s", errors))
 		os.Exit(1)
 	}
 
+	command_value, found := params[COMMAND] 
+	if !found {
+		fmt.Printf("%s is a mandatory field", COMMAND)
+		os.Exit(1)
+	}
 
+	command_value = strings.ToUpper(command_value)
+	if !contains(COMMANDS, command_value) {
+		fmt.Printf("%s is an invalid command", command_value)
+		os.Exit(1)
+	}
 
 	os.Exit(0)
 }
+
 
 func getParams(params []string) (map[string]string, []error) {
 	var errors []error 
@@ -36,5 +49,15 @@ func getParams(params []string) (map[string]string, []error) {
 	}
  
 	return m, nil
+}
+
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
 }
 
