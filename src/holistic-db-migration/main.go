@@ -123,75 +123,97 @@ func InitDB() []error {
 		fmt.Printf("no schema changes detected current: %d to desired: %d\n", current, desired)
 		return nil
 	}
-
 	
-	for current < desired {
+	if current < desired {
 		fmt.Printf("database upgrading from current: %d to desired: %d\n", current, desired)
 
-		current = current + 1
-		filname := fmt.Sprintf("./scripts/sql/%d-upgrade.sql", current)
-
-		fmt.Printf("reading filename for %d\n", current)
-		raw_sql_command, err := os.ReadFile(filname) 
-		if err != nil {
-			fmt.Printf("reading filename for %d\n", filname)
-			errors = append(errors, err)
-			return errors
+		for current < desired {
+			current = current + 1
+			errors := executeMigrationScript(db, databaseMigrationId, current, "upgrade")
+			if errors != nil {
+				return errors
+			}
 		}
-
-		fmt.Printf("db.Begin() for %d\n", current)
-		tx, begin_transaction_err := db.Begin()
-	    if begin_transaction_err != nil {
-			fmt.Printf("error db.Begin() for %d\n", current)
-			errors = append(errors, begin_transaction_err)
-			return errors
+	} else {
+		for current > desired {	
+			errors := executeMigrationScript(db, databaseMigrationId, current, "downgrade")
+			if errors != nil {
+				return errors
+			}
+			current = current - 1
 		}
+	}
 
-		sql_command := string(raw_sql_command) 
-		fmt.Printf("db.Exec() for %s\n", filname)
-		_, update_error := db.Exec(sql_command)
-		if update_error != nil {
-			tx.Rollback()
-			fmt.Printf("error db.Exec() for %s\n", current)
-			errors = append(errors, update_error)
-			return errors
-		}
+	return nil
+}
 
-		fmt.Printf("tx.Commit() for %d\n", current)
-		commit_error := tx.Commit()
-		if commit_error != nil {
-			tx.Rollback()
-			fmt.Printf("error tx.Commit() for %d\n", current)
-			errors = append(errors, update_error)
-			return errors
-		}
+func executeMigrationScript(db *sql.DB, databaseMigrationId int, scriptId int, mode string) []error {
+	var errors []error
+	filname := fmt.Sprintf("./scripts/sql/%d-%s.sql", scriptId, mode)
+	
+	fmt.Printf("reading filename for %s\n", filname)
+	raw_sql_command, err := os.ReadFile(filname) 
+	if err != nil {
+		fmt.Printf("reading filename for %d\n", filname)
+		errors = append(errors, err)
+		return errors
+	}
 
-		
-		fmt.Printf("db.Begin() version upgrade for %d\n", current)
-		tx, begin_transaction_err = db.Begin()
-		if begin_transaction_err != nil {
-			fmt.Printf("error db.Begin() version upgrade for %d\n", current)
-			errors = append(errors, begin_transaction_err)
-			return errors
-		}
+	fmt.Printf("db.Begin() for %d\n", scriptId)
+	tx, begin_transaction_err := db.Begin()
+	if begin_transaction_err != nil {
+		fmt.Printf("error db.Begin() for %d\n", scriptId)
+		errors = append(errors, begin_transaction_err)
+		return errors
+	}
 
-		fmt.Printf("db.Exec() version upgrade for %d\n", current)
-		_, update_error = db.Exec("UPDATE DatabaseMigration SET current = ? WHERE  databaseMigrationId = ?", current,  databaseMigrationId)
-		if update_error != nil {
-			tx.Rollback()
-			fmt.Printf("error db.Exec() version upgrade for %d\n")
-			errors = append(errors, update_error)
-			return errors
-		}
+	sql_command := string(raw_sql_command) 
+	fmt.Printf("db.Exec() for %s\n", filname)
+	_, update_error := db.Exec(sql_command)
+	if update_error != nil {
+		tx.Rollback()
+		fmt.Printf("error db.Exec() for %s\n", scriptId)
+		errors = append(errors, update_error)
+		return errors
+	}
 
-		fmt.Printf("tx.Commit() version upgrade for %d\n", current)
-		commit_error = tx.Commit()
-		if commit_error != nil {
-			tx.Rollback()
-			fmt.Printf("error tx.Commit() version upgrade for %d\n", current)
-			errors = append(errors, update_error)
-			return errors
-		}
+	fmt.Printf("tx.Commit() for %d\n", scriptId)
+	commit_error := tx.Commit()
+	if commit_error != nil {
+		tx.Rollback()
+		fmt.Printf("error tx.Commit() for %d\n", scriptId)
+		errors = append(errors, update_error)
+		return errors
+	}
+
+	if mode == "downgrade" {
+		scriptId -= 1
+	}
+
+	fmt.Printf("db.Begin() version %s for %d\n", mode, scriptId)
+	tx, begin_transaction_err = db.Begin()
+	if begin_transaction_err != nil {
+		fmt.Printf("error db.Begin() version %s for %d\n", mode, scriptId)
+		errors = append(errors, begin_transaction_err)
+		return errors
+	}
+
+	fmt.Printf("db.Exec() version %s for %d\n", mode, scriptId)
+	_, update_error = db.Exec("UPDATE DatabaseMigration SET current = ? WHERE databaseMigrationId = ?", scriptId,  databaseMigrationId)
+	if update_error != nil {
+		tx.Rollback()
+		fmt.Printf("error db.Exec() version %s for %d\n", mode, scriptId)
+		errors = append(errors, update_error)
+		return errors
+	}
+
+	fmt.Printf("tx.Commit() version %s for %d\n", mode, scriptId)
+	commit_error = tx.Commit()
+	if commit_error != nil {
+		tx.Rollback()
+		fmt.Printf("error tx.Commit() version %s for %d\n", mode, scriptId)
+		errors = append(errors, update_error)
+		return errors
 	}
 
 	return nil
