@@ -31,12 +31,6 @@ func main() {
 
 	//var IF_EXISTS string = "IF EXISTS"
 	//var IF_NOT_EXISTS string = "IF NOT EXISTS"
-
-	var CHARACTER_SET_UTF8 = "utf8"
-	var CHARACTER_SETS = []string{CHARACTER_SET_UTF8}
-
-	var COLLATE_UTF8_GENERAL_CI = "utf8_general_ci"
-	var COLLATES = []string{COLLATE_UTF8_GENERAL_CI}
 	
     params, errors := getParams(os.Args[1:])
 	if errors != nil {
@@ -47,27 +41,25 @@ func main() {
 	host_value, _ := params[CLS_HOST] 
 	port_value, _ := params[CLS_PORT] 
 
-	user_value, user_found := params[CLS_USER] 
-	if !user_found  {
-		errors = append(errors, fmt.Errorf("%s is a mandatory field", CLS_USER))
-	}
+	user_value, _ := params[CLS_USER] 
+	password_value, _ := params[CLS_PASSWORD] 
 
-	password_value, password_found := params[CLS_PASSWORD] 
-	if !password_found {
-		errors = append(errors, fmt.Errorf("%s is a mandatory field", CLS_PASSWORD))
-	}
-
-	if len(errors) > 0 {
-		fmt.Println(fmt.Errorf("%s", errors))
-		os.Exit(1)
-	}
+	db_name_value, _ := params[CLS_DATABASE_NAME]
+	character_set_value, _ := params[CLS_CHARACTER_SET]
+	collate_value, _ := params[CLS_COLLATE]
 
 	creds :=  class.NewCredentials(&user_value, &password_value)
 	creds.Validate()
 	
-
 	host := class.NewHost(&host_value, &port_value)
 	host.Validate()
+
+	database := class.NewDatabase(&db_name_value, &character_set_value, &collate_value)
+	database.Validate()
+
+	client := class.NewClient(host, creds, database)
+	fmt.Println(fmt.Errorf("%s", client))
+
 
 	if len(errors) > 0 {
 		fmt.Println(fmt.Errorf("%s", errors))
@@ -106,36 +98,6 @@ func main() {
 	if command_value == CREATE_COMMAND {
 		if class_value == DATABASE_CLASS {
 			
-			db_name_value, found := params[CLS_DATABASE_NAME]
-			if !found {
-				fmt.Printf("%s is a mandatory field with command: %s %s", CLS_DATABASE_NAME, CREATE_COMMAND, DATABASE_CLASS)
-				os.Exit(1)
-			} 
-
-			db_name_errs := validateDatabaseName(db_name_value)
-			if db_name_errs != nil {
-				fmt.Println(fmt.Errorf("%s contains invalid chracters: %s", CLS_DATABASE_NAME, db_name_errs))
-				os.Exit(1)
-			}
-
-			character_set_value, character_set_found := params[CLS_CHARACTER_SET]
-			if character_set_found && !contains(CHARACTER_SETS, character_set_value) { 
-				fmt.Printf("%s is an invalid value for %s available values: %s", character_set_value, CLS_CHARACTER_SET, strings.Join(CHARACTER_SETS,",") )
-				os.Exit(1)
-			} 
-
-
-			collate_value, colalte_found := params[CLS_COLLATE]
-			if colalte_found && !contains(COLLATES, collate_value) { 
-				fmt.Printf("%s is an invalid value for %s available values: %s", collate_value, CLS_COLLATE, strings.Join(COLLATES,",") )
-				os.Exit(1)
-			} 
-
-			
-
-			
-
-
 
 
 		} else {
