@@ -12,6 +12,7 @@ func main() {
 	const CLS_USER string = "user"
 	const CLS_PASSWORD string = "password"
 	const CLS_HOST string = "host"
+	const CLS_PORT string = "port"
 	const CLS_COMMAND string = "command"
 	const CLS_CLASS string = "class"
 	const CLS_IF_EXISTS string = "if_exists"
@@ -43,10 +44,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	host_value,host_found := params[CLS_HOST] 
-	if !host_found {
-		errors = append(errors, fmt.Errorf("%s is a mandatory field", CLS_HOST))
-	}
+	host_value, _ := params[CLS_HOST] 
+	port_value, _ := params[CLS_PORT] 
 
 	user_value, user_found := params[CLS_USER] 
 	if !user_found  {
@@ -63,11 +62,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	config :=  class.NewConfig(host_value, user_value, password_value)
-	config_errs := config.Validate()
-	if config_errs != nil {
-		errors = append(errors, config_errs...)
-	}
+	creds :=  class.NewCredentials(&user_value, &password_value)
+	creds.Validate()
+	
+
+	host := class.NewHost(&host_value, &port_value)
+	host.Validate()
 
 	if len(errors) > 0 {
 		fmt.Println(fmt.Errorf("%s", errors))
