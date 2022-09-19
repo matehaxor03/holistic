@@ -6,15 +6,15 @@ import (
 
 type Database struct {
 	host *Host
-    db_name *string
+    database_name *string
 	character_set *string
 	collate *string
 	CHARACTER_SETS *[]string
 	COLLATES *[]string
 }
 
-func NewDatabase(host *Host, db_name *string, character_set *string, collate *string) (*Database) {
-	x := Database{host: host, db_name: db_name, character_set: character_set, collate: collate}
+func NewDatabase(host *Host, database_name *string, character_set *string, collate *string) (*Database) {
+	x := Database{host: host, database_name: database_name, character_set: character_set, collate: collate}
 	
 	ARRAY_CHARACTER_SETS := []string{"utf8"}
 	x.CHARACTER_SETS = &ARRAY_CHARACTER_SETS
@@ -70,11 +70,11 @@ func (this *Database) ValidateHost()  ([]error) {
 
 func (this *Database) ValidateDatabaseName() ([]error) {
 	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	return this.ValidateCharacters(VALID_CHARACTERS, (*this).db_name)
+	return this.ValidateCharacters(VALID_CHARACTERS, (*this).database_name)
 }
 
 func (this *Database) ValidateCharacterSet() ([]error) {
-	if  (*this).character_set = nil {
+	if (*this).character_set == nil {
 		return nil
 	}
 
@@ -82,7 +82,7 @@ func (this *Database) ValidateCharacterSet() ([]error) {
 }
 
 func (this *Database) ValidateCollate() ([]error) {
-	if (*this).collate = nil {
+	if (*this).collate == nil {
 		return nil
 	}
 
@@ -133,4 +133,16 @@ func (this *Database) ValidateCharacters(whitelist string, str *string) ([]error
 	var errors []error 
     errors = append(errors, fmt.Errorf("%s does not contain %s", (*s), (*str)))
 	return errors
+}
+
+func (this *Database) GetDatabaseName() *string {
+	return (*this).database_name
+}
+
+func (this *Database) GetCharacterSet() *string {
+	return (*this).character_set
+}
+
+func (this *Database) GetCollate() *string {
+	return (*this).collate
 }

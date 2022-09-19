@@ -33,16 +33,15 @@ func (this *HostSession) Validate() []error {
 	return nil
 }
 
-func (this *HostSession) CreateDatabase(database *Database) []error {
+func (this *HostSession) Create_Database_If_Not_Exists(database *Database) []error {
 	var errors []error 
 
-	host_session_errs := *this.Validate()
+	host_session_errs := (*this).Validate()
+	database_errs := (*database).Validate()
 
 	if host_session_errs != nil {
 		errors = append(errors, host_session_errs...)	
 	}
-
-	database_errs :=  (*(*this).database).Validate()
 
 	if database_errs != nil {
 		errors = append(errors, database_errs...)	
@@ -51,6 +50,21 @@ func (this *HostSession) CreateDatabase(database *Database) []error {
 	if len(errors) > 0 {
 		return errors
 	}
+
+	//CREATE DATABASE IF NOT EXISTS " + db_name + " CHARACTER SET utf8 COLLATE utf8_general_ci
+	command := fmt.Printf("CREATE DATABASE IF NOT EXISTS %s", (*database).GetDatabaseName())
+
+	character_set := (*database).GetCharacterSet()
+	if character_set != nil {
+		command += fmt.Printf(" CHARACTER SET %s", character_set)
+	}
+
+	collate := (*database).GetCollate()
+	if collate != nil {
+		command += fmt.Printf(" COLLATE %s", collate)
+	}
+
+	command += ";"
 
 	// execute mysql command
 
