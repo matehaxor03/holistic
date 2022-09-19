@@ -17,9 +17,12 @@ import (
 func main() {
 	errors := InitDB()
 	if errors != nil {
-		panic(fmt.Errorf("%s", errors))
+		errs := fmt.Errorf("%s", errors)
+		fmt.Println(errs)
+		os.Exit(1)
 	}
 
+	os.Exit(0)
 }
 
 func InitDB() []error {
@@ -120,12 +123,12 @@ func InitDB() []error {
 	db_results.Close()
 
 	if current == desired {
-		fmt.Printf("no schema changes detected current: %d to desired: %d\n", current, desired)
+		fmt.Printf("no schema changes detected current: %d desired: %d\n", current, desired)
 		return nil
 	}
 	
 	if current < desired {
-		fmt.Printf("database upgrading from current: %d to desired: %d\n", current, desired)
+		fmt.Printf("database upgrading from current: %d desired: %d\n", current, desired)
 
 		for current < desired {
 			current = current + 1
@@ -190,28 +193,28 @@ func executeMigrationScript(db *sql.DB, databaseMigrationId int, scriptId int, m
 		scriptId -= 1
 	}
 
-	fmt.Printf("db.Begin() version %s for %d\n", mode, scriptId)
+	fmt.Printf("db.Begin() version %s to %d\n", mode, scriptId)
 	tx, begin_transaction_err = db.Begin()
 	if begin_transaction_err != nil {
-		fmt.Printf("error db.Begin() version %s for %d\n", mode, scriptId)
+		fmt.Printf("error db.Begin() version %s to %d\n", mode, scriptId)
 		errors = append(errors, begin_transaction_err)
 		return errors
 	}
 
-	fmt.Printf("db.Exec() version %s for %d\n", mode, scriptId)
+	fmt.Printf("db.Exec() version %s to %d\n", mode, scriptId)
 	_, update_error = db.Exec("UPDATE DatabaseMigration SET current = ? WHERE databaseMigrationId = ?", scriptId,  databaseMigrationId)
 	if update_error != nil {
 		tx.Rollback()
-		fmt.Printf("error db.Exec() version %s for %d\n", mode, scriptId)
+		fmt.Printf("error db.Exec() version %s to %d\n", mode, scriptId)
 		errors = append(errors, update_error)
 		return errors
 	}
 
-	fmt.Printf("tx.Commit() version %s for %d\n", mode, scriptId)
+	fmt.Printf("tx.Commit() version %s to %d\n", mode, scriptId)
 	commit_error = tx.Commit()
 	if commit_error != nil {
 		tx.Rollback()
-		fmt.Printf("error tx.Commit() version %s for %d\n", mode, scriptId)
+		fmt.Printf("error tx.Commit() version %s to %d\n", mode, scriptId)
 		errors = append(errors, update_error)
 		return errors
 	}
