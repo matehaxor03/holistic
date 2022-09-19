@@ -17,8 +17,11 @@ import (
 func main() {
 	errors := InitDB()
 	if errors != nil {
-		panic(fmt.Errorf("%s", errors))
+		fmt.Println(fmt.Errorf("%s", errors))
+		os.Exit(1)
 	}
+
+	os.Exit(0)
 
 }
 

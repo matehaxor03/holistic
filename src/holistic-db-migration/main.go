@@ -15,17 +15,15 @@ import (
 )
 
 func main() {
-	errors := InitDB()
+	errors := migrateDatabase()
 	if errors != nil {
-		errs := fmt.Errorf("%s", errors)
-		fmt.Println(errs)
+		fmt.Println(fmt.Errorf("%s", errors))
 		os.Exit(1)
 	}
-
 	os.Exit(0)
 }
 
-func InitDB() []error {
+func migrateDatabase() []error {
 	var errors []error
 
 	migration_db_username, migration_db_password := getCredentials("MIGRATION")
