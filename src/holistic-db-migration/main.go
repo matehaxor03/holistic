@@ -25,32 +25,11 @@ func main() {
 func InitDB() []error {
 	var errors []error
 
-	root_db_username, root_db_password := getCredentials("ROOT")
-	root_db_credentials_errs := validateCredentials(root_db_username, root_db_password)
-
-	if root_db_credentials_errs != nil {
-		errors = append(errors, root_db_credentials_errs...)
-	}
-
 	migration_db_username, migration_db_password := getCredentials("MIGRATION")
 	migration_db_credentials_errs := validateCredentials(migration_db_username, migration_db_password)
 
 	if migration_db_credentials_errs != nil {
 		errors = append(errors, migration_db_credentials_errs...)
-	}
-
-	write_db_username, write_db_password := getCredentials("WRITE")
-	write_db_credentials_errs := validateCredentials(write_db_username, write_db_password)
-
-	if write_db_credentials_errs != nil {
-		errors = append(errors, write_db_credentials_errs...)
-	}
-
-	read_db_username, read_db_password := getCredentials("READ")
-	read_db_credentials_errs := validateCredentials(read_db_username, read_db_password)
-
-	if read_db_credentials_errs != nil {
-		errors = append(errors, read_db_credentials_errs...)
 	}
 
 	db_hostname := getDatabaseHostname()
@@ -71,100 +50,11 @@ func InitDB() []error {
 		errors = append(errors, db_name_err...)
 	}
 
-	usernames := [...]string{root_db_username, migration_db_username, write_db_username, read_db_username}
-
-	usernamesGrouped := make(map[string]int)
-	for _, num := range usernames {
-		usernamesGrouped[num] = usernamesGrouped[num] + 1
-	}
-
-	for key, element := range usernamesGrouped {
-		if element > 1 {
-			errors = append(errors, fmt.Errorf("%s database username was detected %d times - root, migration, write and read database usernames must be all unqiue", key, element))
-		}
-	}
-
-	root_db_password = base64.StdEncoding.EncodeToString([]byte(root_db_password))
-	migration_db_password = base64.StdEncoding.EncodeToString([]byte(migration_db_password))
-	write_db_password = base64.StdEncoding.EncodeToString([]byte(migration_db_password))
-	read_db_password = base64.StdEncoding.EncodeToString([]byte(migration_db_password))
-
 	if len(errors) > 0 {
 		return errors
 	}
 
-	cfg_root := mysql.Config{
-		User:   root_db_username,
-		Passwd: root_db_password,
-		Net:    "tcp",
-		Addr:   db_hostname + ":" + db_port_number,
-	}
-
-	db, dberr := sql.Open("mysql", cfg_root.FormatDSN())
-
-	if dberr != nil {
-		errors = append(errors, dberr)
-		defer db.Close()
-		return errors
-	}
-
-	_, database_creation_err := db.Exec("CREATE DATABASE IF NOT EXISTS " + db_name + " CHARACTER SET utf8 COLLATE utf8_general_ci")
-	if database_creation_err != nil {
-		fmt.Println("error creating database")
-		errors = append(errors, database_creation_err)
-		defer db.Close()
-		return errors
-	}
-
-	_, create_user_migration_err := db.Exec("CREATE USER IF NOT EXISTS '" + migration_db_username + "'@'%' IDENTIFIED BY '" + migration_db_password + "'")
-	if create_user_migration_err != nil {
-		fmt.Println("error creating migration user")
-		errors = append(errors, create_user_migration_err)
-		defer db.Close()
-		return errors
-	}
-
-	_, grant_user_migration_permissions_err := db.Exec("GRANT ALL ON " + db_name + ".* To '" + migration_db_username + "'@'%'")
-	if grant_user_migration_permissions_err != nil {
-		fmt.Println("error granting migration user permissions")
-		errors = append(errors, grant_user_migration_permissions_err)
-		defer db.Close()
-		return errors
-	}
-
-	_, create_user_write_err := db.Exec("CREATE USER IF NOT EXISTS '" + write_db_username + "'@'%' IDENTIFIED BY '" + write_db_password + "'")
-	if create_user_write_err != nil {
-		fmt.Println("error creating write user")
-		errors = append(errors, create_user_write_err)
-		defer db.Close()
-		return errors
-	}
-
-	_, grant_user_write_permissions_err := db.Exec("GRANT INSERT, UPDATE ON " + db_name + ".* To '" + write_db_username + "'@'%'")
-	if grant_user_write_permissions_err != nil {
-		fmt.Println("error granting write user permissions")
-		errors = append(errors, grant_user_write_permissions_err)
-		defer db.Close()
-		return errors
-	}
-
-	_, create_user_read_err := db.Exec("CREATE USER IF NOT EXISTS '" + read_db_username + "'@'%' IDENTIFIED BY '" + read_db_password + "'")
-	if create_user_read_err != nil {
-		fmt.Println("error creating read user")
-		errors = append(errors, create_user_read_err)
-		defer db.Close()
-		return errors
-	}
-
-	_, grant_user_read_permissions_err := db.Exec("GRANT SELECT ON " + db_name + ".* To '" + read_db_username + "'@'%'")
-	if grant_user_read_permissions_err != nil {
-		fmt.Println("error granting read user permissions")
-		errors = append(errors, grant_user_read_permissions_err)
-		defer db.Close()
-		return errors
-	}
-
-	db.Close()
+	migration_db_password = base64.StdEncoding.EncodeToString([]byte(migration_db_password))
 
 	cfg_migration := mysql.Config{
 		User:   migration_db_username,
@@ -174,32 +64,25 @@ func InitDB() []error {
 		DBName: db_name,
 	}
 
-	db, dberr = sql.Open("mysql", cfg_migration.FormatDSN())
+	db, dberr := sql.Open("mysql", cfg_migration.FormatDSN())
 
 	if dberr != nil {
 		errors = append(errors, dberr)
 		defer db.Close()
 		return errors
 	}
+	defer db.Close()
 
-	_, create_table_database_migration_err := db.Exec("CREATE TABLE IF NOT EXISTS database_migration (database_migration_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, current_migration BIGINT NOT NULL DEFAULT -1, desired_migration BIGINT NOT NULL DEFAULT 0, created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
-	if create_table_database_migration_err != nil {
-		fmt.Println("error creating database_migration table")
-		errors = append(errors, create_table_database_migration_err)
-		defer db.Close()
-		return errors
-	}
-
-	db_results, count_err := db.Query("SELECT COUNT(*) FROM database_migration")
+	db_results, count_err := db.Query("SELECT COUNT(*) FROM DatabaseMigration")
 	if count_err != nil {
-		fmt.Println("error fetching count of records for database_migration")
+		fmt.Println("error fetching count of records for DatabaseMigration")
 		errors = append(errors, count_err)
 		defer db.Close()
 		return errors
 	}
 	defer db_results.Close()
+	
 	var count int
-
 	for db_results.Next() {
 		if err := db_results.Scan(&count); err != nil {
 			errors = append(errors, err)
@@ -207,21 +90,110 @@ func InitDB() []error {
 			return errors
 		}
 	}
+	db_results.Close()
 
-	if count > 0 {
-		defer db.Close()
-		return nil
-	}
-
-	_, insert_record_database_migration_err := db.Exec("INSERT INTO database_migration () VALUES ()")
-	if insert_record_database_migration_err != nil {
-		fmt.Println("error inserting record into database_migration")
-		errors = append(errors, insert_record_database_migration_err)
+	if count != 1 {
+		errors = append(errors, fmt.Errorf("did not find correct number of records for DatabaseMigration %d records found", count))
 		defer db.Close()
 		return errors
 	}
 
-	defer db.Close()
+	var databaseMigrationId int
+	var current int
+	var desired int
+	
+	db_results, count_err = db.Query("SELECT databaseMigrationId, current, desired FROM DatabaseMigration")
+	if count_err != nil {
+		fmt.Println("error fetching details for DatabaseMigration")
+		errors = append(errors, count_err)
+		defer db.Close()
+		return errors
+	}
+
+	for db_results.Next() {
+		if err := db_results.Scan(&databaseMigrationId, &current, &desired); err != nil {
+			errors = append(errors, err)
+			defer db.Close()
+			return errors
+		}
+	}
+	db_results.Close()
+
+	if current == desired {
+		fmt.Printf("no schema changes detected current: %d to desired: %d\n", current, desired)
+		return nil
+	}
+
+	
+	for current < desired {
+		fmt.Printf("database upgrading from current: %d to desired: %d\n", current, desired)
+
+		current = current + 1
+		filname := fmt.Sprintf("./scripts/sql/%d-upgrade.sql", current)
+
+		fmt.Printf("reading filename for %d\n", current)
+		raw_sql_command, err := os.ReadFile(filname) 
+		if err != nil {
+			fmt.Printf("reading filename for %d\n", filname)
+			errors = append(errors, err)
+			return errors
+		}
+
+		fmt.Printf("db.Begin() for %d\n", current)
+		tx, begin_transaction_err := db.Begin()
+	    if begin_transaction_err != nil {
+			fmt.Printf("error db.Begin() for %d\n", current)
+			errors = append(errors, begin_transaction_err)
+			return errors
+		}
+
+		sql_command := string(raw_sql_command) 
+		fmt.Printf("db.Exec() for %s\n", filname)
+		_, update_error := db.Exec(sql_command)
+		if update_error != nil {
+			tx.Rollback()
+			fmt.Printf("error db.Exec() for %s\n", current)
+			errors = append(errors, update_error)
+			return errors
+		}
+
+		fmt.Printf("tx.Commit() for %d\n", current)
+		commit_error := tx.Commit()
+		if commit_error != nil {
+			tx.Rollback()
+			fmt.Printf("error tx.Commit() for %d\n", current)
+			errors = append(errors, update_error)
+			return errors
+		}
+
+		
+		fmt.Printf("db.Begin() version upgrade for %d\n", current)
+		tx, begin_transaction_err = db.Begin()
+		if begin_transaction_err != nil {
+			fmt.Printf("error db.Begin() version upgrade for %d\n", current)
+			errors = append(errors, begin_transaction_err)
+			return errors
+		}
+
+		fmt.Printf("db.Exec() version upgrade for %d\n", current)
+		_, update_error = db.Exec("UPDATE DatabaseMigration SET current = ? WHERE  databaseMigrationId = ?", current,  databaseMigrationId)
+		if update_error != nil {
+			tx.Rollback()
+			fmt.Printf("error db.Exec() version upgrade for %d\n")
+			errors = append(errors, update_error)
+			return errors
+		}
+
+		fmt.Printf("tx.Commit() version upgrade for %d\n", current)
+		commit_error = tx.Commit()
+		if commit_error != nil {
+			tx.Rollback()
+			fmt.Printf("error tx.Commit() version upgrade for %d\n", current)
+			errors = append(errors, update_error)
+			return errors
+		}
+	}
+
 	return nil
 }
 

@@ -178,50 +178,47 @@ func InitDB() []error {
 
 	if dberr != nil {
 		errors = append(errors, dberr)
-		defer db.Close()
 		return errors
 	}
 
-	_, create_table_database_migration_err := db.Exec("CREATE TABLE IF NOT EXISTS database_migration (database_migration_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, current_migration BIGINT NOT NULL DEFAULT -1, desired_migration BIGINT NOT NULL DEFAULT 0, created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+	defer db.Close()
+
+
+	_, create_table_database_migration_err := db.Exec("CREATE TABLE IF NOT EXISTS DatabaseMigration (databaseMigrationId BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, current BIGINT NOT NULL DEFAULT -1, desired BIGINT NOT NULL DEFAULT 0, created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_modified_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
 	if create_table_database_migration_err != nil {
 		fmt.Println("error creating database_migration table")
 		errors = append(errors, create_table_database_migration_err)
-		defer db.Close()
 		return errors
 	}
 
-	db_results, count_err := db.Query("SELECT COUNT(*) FROM database_migration")
+	db_results, count_err := db.Query("SELECT COUNT(*) FROM DatabaseMigration")
 	if count_err != nil {
-		fmt.Println("error fetching count of records for database_migration")
+		fmt.Println("error fetching count of records for DatabaseMigration")
 		errors = append(errors, count_err)
-		defer db.Close()
 		return errors
 	}
+
 	defer db_results.Close()
 	var count int
 
 	for db_results.Next() {
 		if err := db_results.Scan(&count); err != nil {
 			errors = append(errors, err)
-			defer db.Close()
 			return errors
 		}
 	}
 
 	if count > 0 {
-		defer db.Close()
 		return nil
 	}
 
-	_, insert_record_database_migration_err := db.Exec("INSERT INTO database_migration () VALUES ()")
+	_, insert_record_database_migration_err := db.Exec("INSERT INTO DatabaseMigration () VALUES ()")
 	if insert_record_database_migration_err != nil {
 		fmt.Println("error inserting record into database_migration")
 		errors = append(errors, insert_record_database_migration_err)
-		defer db.Close()
 		return errors
 	}
 
-	defer db.Close()
 	return nil
 }
 
