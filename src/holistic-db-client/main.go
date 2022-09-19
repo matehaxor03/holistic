@@ -4,9 +4,14 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	class "holistic-db-client/class"
 )
 
 func main() {
+	var errors []error 
+	const CLS_USER string = "user"
+	const CLS_PASSWORD string = "password"
+	const CLS_HOST string = "host"
 	const CLS_COMMAND string = "command"
 	const CLS_CLASS string = "class"
 	const CLS_IF_EXISTS string = "if_exists"
@@ -14,6 +19,7 @@ func main() {
 	const CLS_DATABASE_NAME string = "db_name"
 	const CLS_CHARACTER_SET string = "character_set"
 	const CLS_COLLATE string = "collate"
+
 
 
 	var CREATE_COMMAND = "CREATE"
@@ -37,8 +43,39 @@ func main() {
 		os.Exit(1)
 	}
 
-	command_value, found := params[CLS_COMMAND] 
-	if !found || command_value == "" {
+	host_value,host_found := params[CLS_HOST] 
+	if !host_found {
+		errors = append(errors, fmt.Errorf("%s is a mandatory field", CLS_HOST))
+	}
+
+	user_value, user_found := params[CLS_USER] 
+	if !user_found  {
+		errors = append(errors, fmt.Errorf("%s is a mandatory field", CLS_USER))
+	}
+
+	password_value, password_found := params[CLS_PASSWORD] 
+	if !password_found {
+		errors = append(errors, fmt.Errorf("%s is a mandatory field", CLS_PASSWORD))
+	}
+
+	if len(errors) > 0 {
+		fmt.Println(fmt.Errorf("%s", errors))
+		os.Exit(1)
+	}
+
+	config :=  class.NewConfig(host_value, user_value, password_value)
+	config_errs := config.Validate()
+	if config_errs != nil {
+		errors = append(errors, config_errs...)
+	}
+
+	if len(errors) > 0 {
+		fmt.Println(fmt.Errorf("%s", errors))
+		os.Exit(1)
+	}
+
+	command_value, command_found := params[CLS_COMMAND] 
+	if !command_found || command_value == "" {
 		fmt.Printf("%s is a mandatory field available commands: %s", CLS_COMMAND, strings.Join(COMMANDS,","))
 		os.Exit(1)
 	}
@@ -96,7 +133,7 @@ func main() {
 
 			
 
-
+			
 
 
 
@@ -117,10 +154,25 @@ func main() {
 	os.Exit(0)
 }
 
-func validateDatabaseName(db_name string) ([]error) {
+func executeCreateDatabaseCommand() ([]error) {
+	return nil
+}
+
+func ValidateDatabaseName(db_name string) ([]error) {
 	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	var errors []error 
+
+	if db_name == "" {
+		errors = append(errors, fmt.Errorf("db_name cannot have an empty value"))
+		return errors
+	}
+
 	return validateCharacters(VALID_CHARACTERS, db_name)
 }
+
+
+
+
 
 func getParams(params []string) (map[string]string, []error) {
 	var errors []error 
