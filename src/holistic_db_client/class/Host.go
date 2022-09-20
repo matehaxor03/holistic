@@ -94,6 +94,8 @@ func (this *Host) Validate() []error {
 	return nil
 }
 
+
+
 func (this *Host) validateHostname() ([]error) {
 	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789."
 	return ValidateCharacters(VALID_CHARACTERS, (*this).GetHostName(), "host_name")

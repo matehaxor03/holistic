@@ -1,5 +1,11 @@
 package class
 
+import (
+	"fmt"
+	"reflect"
+	"unicode"
+)
+
 type DatabaseCreateOptions struct {
 	character_set *string
 	collate *string
@@ -7,40 +13,64 @@ type DatabaseCreateOptions struct {
 	COLLATES []string
 }
 
-func NewDatabaseCreateOptions(character_set *string, collate *string) (*DatabaseCreateOptions, []error) {
+func NewDatabaseCreateOptions(character_set *string, collate *string) (*DatabaseCreateOptions) {
 	x := DatabaseCreateOptions{character_set: character_set, collate: collate}
 	
 	x.CHARACTER_SETS = []string{"utf8"}
 	x.COLLATES = []string{"utf8_general_ci"}
 	
-	errors := x.Validate()
-	if errors != nil {
-		return nil, errors
-	}
-
-	return &x, nil
+	return &x
 }
 
 func (this *DatabaseCreateOptions) Validate() []error {
 	var errors []error 
+	e := reflect.ValueOf(this).Elem()
+	
+    for i := 0; i < e.NumField(); i++ {
+		varName := e.Type().Field(i).Name
 
-	character_set_errs := (*this).validateCharacterSet()
+		if varName == "character_set" {
+			character_set_errs := (*this).validateCharacterSet()
 
-	if character_set_errs != nil {
-		errors = append(errors, character_set_errs...)	
+			if character_set_errs != nil {
+				errors = append(errors, character_set_errs...)	
+			}
+		} else if varName == "collate" {
+			collate_errs :=  (*this).validateCollate()
+
+			if collate_errs != nil {
+				errors = append(errors, collate_errs...)	
+			}
+		} else {
+			if !IsUpper(varName) {
+				errors = append(errors, fmt.Errorf("%s field is not being validated for Crendentials", varName))	
+			}
+		}	
 	}
-
-	collate_errs :=  (*this).validateCollate()
-
-	if collate_errs != nil {
-		errors = append(errors, collate_errs...)	
-	}
-
+		
 	if len(errors) > 0 {
 		return errors
 	}
 
 	return nil
+}
+
+func IsUpper(s string) bool {
+    for _, r := range s {
+        if !unicode.IsUpper(r) && unicode.IsLetter(r) {
+            return false
+        }
+    }
+    return true
+}
+
+func IsLower(s string) bool {
+    for _, r := range s {
+        if !unicode.IsLower(r) && unicode.IsLetter(r) {
+            return false
+        }
+    }
+    return true
 }
 
 func (this *DatabaseCreateOptions) validateCharacterSet() ([]error) {

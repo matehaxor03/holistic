@@ -90,7 +90,7 @@ func main() {
 	if command_value == CREATE_COMMAND {
 		if class_value == DATABASE_CLASS {
 
-			database_create_options, _ := class.NewDatabaseCreateOptions(character_set, collate)
+			database_create_options := class.NewDatabaseCreateOptions(character_set, collate)
 			_, shell_output, database_errors := client.CreateDatabase(database_name, database_create_options, options)
 			
 			if database_errors != nil {
