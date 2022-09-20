@@ -17,7 +17,7 @@ func main() {
 	const CLS_CLASS string = "class"
 	const CLS_IF_EXISTS string = "if_exists"
 	const CLS_IF_NOT_EXISTS string = "if_not_exists"
-	const CLS_DATABASE_NAME string = "db_name"
+	const CLS_DATABASE_NAME string = "database_name"
 	const CLS_CHARACTER_SET string = "character_set"
 	const CLS_COLLATE string = "collate"
 
@@ -54,11 +54,6 @@ func main() {
 
 	_, if_exists := params[CLS_IF_EXISTS]
 	_, if_not_exists := params[CLS_IF_NOT_EXISTS]
-
-	host := class.NewHost(&host_value, &port_value)
-	credentials :=  class.NewCredentials(&user_value, &password_value)
-	database := class.NewDatabase(host, &db_name_value, &character_set_value, &collate_value)
-	client := class.NewClient()
 	
 	if if_exists && if_not_exists {
 		errors = append(errors, fmt.Errorf("%s and %s cannot be used together", CLS_IF_EXISTS, CLS_IF_NOT_EXISTS))
@@ -79,20 +74,30 @@ func main() {
 		os.Exit(1)
 	}
 
+	options := make(map[string]string)
+	if if_not_exists {
+		options["logic"] = "IF NOT EXISTS"
+	}
+
+	if if_exists {
+		options["logic"] = "IF EXISTS"
+	}
+
+	host := class.NewHost(&host_value, &port_value)
+	credentials :=  class.NewCredentials(&user_value, &password_value)
+	//client := class.NewClient()
+
 	if command_value == CREATE_COMMAND {
 		if class_value == DATABASE_CLASS {
-			host_session, client_errors := client.Login(host, credentials)
-			if client_errors != nil {
-				for _, e := range client_errors {
+			_, shell_output, database_errors := class.NewDatabase(host, credentials, &db_name_value, &character_set_value, &collate_value, options)
+			if database_errors != nil {
+				for _, e := range database_errors {
 					fmt.Println(e)
 				}
-				os.Exit(1)
-			}
 
-			if if_not_exists {
-				host_session.Create_Database_If_Not_Exists(database)
-			} else {
-				fmt.Printf("not implemented yet")
+				if shell_output != nil {
+					fmt.Println(*shell_output)
+				}
 				os.Exit(1)
 			}
 		} else {

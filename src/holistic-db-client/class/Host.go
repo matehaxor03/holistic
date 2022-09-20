@@ -93,3 +93,14 @@ func (this *Host) ValidateCharacters(whitelist string, str *string) ([]error) {
  func (this *Host) GetPortNumber() (*string) {
 	return (*this).port_number
  }
+
+ func (this *Host) GetCLSCommand() (*string, []error) {
+	errors := (*this).Validate()
+	if len(errors) > 0 {
+		return nil, errors
+	}
+
+	command := fmt.Sprintf("--host=%s --port=%s --protocol=TCP ", (*(*this).GetHostName()), (*(*this).GetPortNumber()))
+
+	return &command, nil
+ }

@@ -88,7 +88,8 @@ func (this *HostSession) Create_Database_If_Not_Exists(database *Database) []err
 		errors = append(errors, command_err)	
 	}
 
-    fmt.Printf("translated phrase: %q\n", out.String())
+	shell_ouput := out.String()
+    fmt.Printf("translated phrase: %q\n", shell_ouput)
 	return nil
 }
 

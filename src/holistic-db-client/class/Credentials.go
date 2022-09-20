@@ -100,3 +100,14 @@ func (this *Credentials) ValidateCharacters(whitelist string, str *string, label
 	return (*this).password
  }
 
+ func (this *Credentials) GetCLSCommand() (*string, []error) {
+	errors := (*this).Validate()
+	if len(errors) > 0 {
+		return nil, errors
+	}
+
+	command := fmt.Sprintf("--user=%s --password=%s ", (*(*this).GetUsername()), (*(*this).GetPassword()))
+
+	return &command, nil
+ }
+
