@@ -85,13 +85,13 @@ func main() {
 
 	host := class.NewHost(host_value, port_value)
 	credentials :=  class.NewCredentials(user_value, password_value)
-	//client := class.NewClient()
+	client := class.NewClient(host, credentials, nil)
 
 	if command_value == CREATE_COMMAND {
 		if class_value == DATABASE_CLASS {
 
 			database_create_options, _ := class.NewDatabaseCreateOptions(character_set, collate)
-			_, shell_output, database_errors := CreateDatabase(host, credentials, database_name, database_create_options, options)
+			_, shell_output, database_errors := client.CreateDatabase(database_name, database_create_options, options)
 			
 			if database_errors != nil {
 				for _, e := range database_errors {
