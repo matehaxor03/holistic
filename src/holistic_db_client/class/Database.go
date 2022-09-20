@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"reflect"
 	"strings"
+	"runtime"
 )
 
 type Database struct {
@@ -14,6 +15,7 @@ type Database struct {
     database_name *string
 	database_create_options *DatabaseCreateOptions
 	extra_options map[string]string
+	validation_functions map[string]func() []error
 	
 	DATA_DEFINITION_STATEMENT_CREATE string
 	DATA_DEFINITION_STATEMENTS []string
@@ -21,8 +23,6 @@ type Database struct {
 	LOGIC_OPTION_FIELD string
 	LOGIC_OPTION_IF_NOT_EXISTS string
 	LOGIC_OPTION_CREATE_OPTIONS []string
-
-	VALIDATION_FUNCTIONS map[string]func() []error
 }
 
 func NewDatabase(host *Host, credentials *Credentials, database_name *string, database_create_options *DatabaseCreateOptions, extra_options map[string]string) (*Database) {
@@ -35,18 +35,27 @@ func NewDatabase(host *Host, credentials *Credentials, database_name *string, da
 	x.LOGIC_OPTION_IF_NOT_EXISTS = "IF NOT EXISTS"
 	x.LOGIC_OPTION_CREATE_OPTIONS = []string{x.LOGIC_OPTION_IF_NOT_EXISTS}
 	
-	x.VALIDATION_FUNCTIONS = make(map[string]func() []error)
+	x.validation_functions = make(map[string]func() []error)
 	x.InitValidationFunctions()
+
+
 
 	return &x
 }
 
 func (this *Database) InitValidationFunctions() ()  {
-	(*this).VALIDATION_FUNCTIONS["validateHost"] = (*this).validateHost
-	(*this).VALIDATION_FUNCTIONS["validateCredentials"] = (*this).validateCredentials
-	(*this).VALIDATION_FUNCTIONS["validateDatabaseName"] = (*this).validateDatabaseName
-	(*this).VALIDATION_FUNCTIONS["validateDatabaseCreateOptions"] = (*this).validateDatabaseCreateOptions
-	(*this).VALIDATION_FUNCTIONS["validateExtraOptions"] = (*this).validateExtraOptions
+	validation_functions := (*this).getValidationFunctions()
+	validation_functions["validateHost"] = (*this).validateHost
+	validation_functions["validateCredentials"] = (*this).validateCredentials
+	validation_functions["validateDatabaseName"] = (*this).validateDatabaseName
+	validation_functions["validateDatabaseCreateOptions"] = (*this).validateDatabaseCreateOptions
+	validation_functions["validateExtraOptions"] = (*this).validateExtraOptions
+	validation_functions["validateValidationFunctions"] = (*this).validateValidationFunctions
+
+	if validation_functions["validateValidationFunctions"] == nil|| 
+	   GetFunctionName(validation_functions["validateValidationFunctions"]) != GetFunctionName((*this).validateValidationFunctions) {
+		panic(fmt.Errorf("validateValidationFunctions validation method not found potential sql injection without it"))
+	}
 }
 
 func (this *Database) Create() (*Database, *string, []error)  {
@@ -58,13 +67,14 @@ func (this *Database) Create() (*Database, *string, []error)  {
 	return this, result, nil
 }
 
+func (this *Database) getValidationFunctions() map[string]func() []error {
+	return (*this).validation_functions
+}
+
 func (this *Database) Validate() []error {
 	var errors []error 
 	reflected_value := reflect.ValueOf(this)
-
 	refected_element := reflected_value.Elem()
-	
-
 	
     for i := 0; i < refected_element.NumField(); i++ {
 		varName := refected_element.Type().Field(i).Name
@@ -77,14 +87,7 @@ func (this *Database) Validate() []error {
 		varName = strings.Replace(varName, " ", "", -1)
 		varName = "validate" + varName
 
-		
-
-		//method := reflected_value.MethodByName(varName)
-		//method.Call([]reflect.Value{})
-
-		//function := (*this).VALIDATION_FUNCTIONS[varName]
-
-		method, found_method := (*this).VALIDATION_FUNCTIONS[varName]
+		method, found_method := (*this).getValidationFunctions()[varName]
 		if !found_method {
 			errors = append(errors, fmt.Errorf("validation method: %s not found for %s please add to InitValidationFunctions", varName, reflected_value.Type()))	
 		} else {
@@ -93,58 +96,6 @@ func (this *Database) Validate() []error {
 				errors = append(errors, relection_errors...)
 			}
 		}
-
-	
-		
-/*
-		method := reflect.ValueOf(this).MethodByName(varName)
-		method_result := method.Call(nil)
-		method_errors := reflect.ValueOf(method_result[0])
-		if method_errors != nil {
-			reflect_errors := method_errors.Interface().([]error)
-			if reflect_errors != nil {
-				errors = append(errors, reflect_errors...)	
-			}
-		}*/
-		
-		
-		/*
-		if varName == "host" {	
-			host_errs := (*this).validateHost()
-
-			if host_errs != nil {
-				errors = append(errors, host_errs...)	
-			}
-		} else if varName == "credentials" {
-			credentials_errs := (*this).validateCredentials()
-
-			if credentials_errs != nil {
-				errors = append(errors, credentials_errs...)	
-			}
-		} else if varName == "database_name" {
-
-			database_name_errs := this.validateDatabaseName()
-
-			if database_name_errs != nil {
-				errors = append(errors, database_name_errs...)	
-			}
-		} else if varName == "database_create_options" {
-			database_create_options_errs := ((*this).GetDatabaseCreateOptions()).Validate()
-
-			if database_create_options_errs != nil {
-				errors = append(errors, database_create_options_errs...)	
-			}
-		} else if varName == "extra_options" {
-			extra_options_errs := (*this).validateExtraOptions()
-
-			if extra_options_errs != nil {
-				errors = append(errors, extra_options_errs...)	
-			}
-		} else {
-			if !IsUpper(varName) {
-				errors = append(errors, fmt.Errorf("%s field is not being validated for Crendentials", varName))	
-			}
-		}	*/
 	}
 
 	if len(errors) > 0 {
@@ -208,6 +159,39 @@ func (this *Database) validateCredentials()  ([]error) {
 func (this *Database) validateDatabaseName() ([]error) {
 	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	return ValidateCharacters(VALID_CHARACTERS, (*this).database_name, "database_name")
+}
+
+func GetFunctionName(i interface{}) string {
+    return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+
+func (this *Database) validateValidationFunctions() ([]error) {
+	var errors []error 
+	current := (*this).getValidationFunctions()
+	compare := make(map[string]func() []error)
+	found := false
+
+    for current_key, current_value := range current {
+		found = false
+		for compare_key, compare_value := range compare {
+			if GetFunctionName(current_value) == GetFunctionName(compare_value) && 
+			   current_key != compare_key {
+				found = true
+				errors = append(errors, fmt.Errorf("key %s and key %s contain duplicate validation functions %s",  current_key, compare_key, current_value))
+				break
+			}
+		}
+
+		if !found {
+			compare[current_key] = current_value
+		}
+    }
+
+	if len(errors) > 0 {
+		return errors
+	}
+
+	return nil
 }
 
 func (this *Database) GetDatabaseName() *string {
