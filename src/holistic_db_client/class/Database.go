@@ -11,6 +11,7 @@ type Database struct {
 	credentials *Credentials
     database_name *string
 	database_create_options *DatabaseCreateOptions
+	extra_options map[string]string
 	
 	DATA_DEFINITION_STATEMENT_CREATE string
 	DATA_DEFINITION_STATEMENTS []string
@@ -20,8 +21,8 @@ type Database struct {
 	LOGIC_OPTION_CREATE_OPTIONS []string
 }
 
-func NewDatabase(host *Host, credentials *Credentials, database_name *string, database_create_options *DatabaseCreateOptions, options map[string]string) (*Database, *string, []error) {
-	x := Database{host: host, credentials: credentials, database_name: database_name, database_create_options: database_create_options}
+func NewDatabase(host *Host, credentials *Credentials, database_name *string, database_create_options *DatabaseCreateOptions, extra_options map[string]string) (*Database) {
+	x := Database{host: host, credentials: credentials, database_name: database_name, database_create_options: database_create_options, extra_options: extra_options}
 	
 	x.DATA_DEFINITION_STATEMENT_CREATE = "CREATE"
 	x.DATA_DEFINITION_STATEMENTS = []string{x.DATA_DEFINITION_STATEMENT_CREATE}
@@ -30,7 +31,11 @@ func NewDatabase(host *Host, credentials *Credentials, database_name *string, da
 	x.LOGIC_OPTION_IF_NOT_EXISTS = "IF NOT EXISTS"
 	x.LOGIC_OPTION_CREATE_OPTIONS = []string{x.LOGIC_OPTION_IF_NOT_EXISTS}
 	
-	this, result, errors := x.CreateDatabase(options)
+	return &x
+}
+
+func (this *Database) Create() (*Database, *string, []error)  {
+	this, result, errors := (*this).createDatabase()
 	if errors != nil {
 		return nil, result, errors
 	}
@@ -151,9 +156,9 @@ func (this *Database) GetDataDefinitionStatements() []string {
 	return (*this).DATA_DEFINITION_STATEMENTS
 }
 
-func (this *Database) CreateDatabase(options map[string]string) (*Database, *string, []error) {
+func (this *Database) createDatabase() (*Database, *string, []error) {
 	var errors []error 
-	crud_sql_command, crud_command_errors := (*this).getCLSCRUDDatabaseCommand((*this).DATA_DEFINITION_STATEMENT_CREATE, options)
+	crud_sql_command, crud_command_errors := (*this).getCLSCRUDDatabaseCommand((*this).DATA_DEFINITION_STATEMENT_CREATE, (*this).GetExtraOptions())
 
 	if crud_command_errors != nil {
 		errors = append(errors, crud_command_errors...)	
@@ -262,4 +267,8 @@ func (this *Database) GetCredentials() *Credentials {
 
 func (this *Database) GetDatabaseCreateOptions() *DatabaseCreateOptions {
 	return (*this).database_create_options
+}
+
+func (this *Database) GetExtraOptions() map[string]string {
+	return (*this).extra_options
 }
