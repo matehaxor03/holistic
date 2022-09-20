@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"bytes"
 	"os/exec"
+	"reflect"
 )
 
 type Database struct {
@@ -45,29 +46,47 @@ func (this *Database) Create() (*Database, *string, []error)  {
 
 func (this *Database) Validate() []error {
 	var errors []error 
-
-	host_errs := (*this).validateHost()
-
-	if host_errs != nil {
-		errors = append(errors, host_errs...)	
-	}
-
-	credentials_errs := (*this).validateCredentials()
-
-	if credentials_errs != nil {
-		errors = append(errors, credentials_errs...)	
-	}
-
-	db_name_errs := this.validateDatabaseName()
-
-	if db_name_errs != nil {
-		errors = append(errors, db_name_errs...)	
-	}
+	e := reflect.ValueOf(this).Elem()
 	
-	database_create_options_errs := ((*this).GetDatabaseCreateOptions()).Validate()
+    for i := 0; i < e.NumField(); i++ {
+		varName := e.Type().Field(i).Name
+		
+		if varName == "host" {	
+			host_errs := (*this).validateHost()
 
-	if database_create_options_errs != nil {
-		errors = append(errors, database_create_options_errs...)	
+			if host_errs != nil {
+				errors = append(errors, host_errs...)	
+			}
+		} else if varName == "credentials" {
+			credentials_errs := (*this).validateCredentials()
+
+			if credentials_errs != nil {
+				errors = append(errors, credentials_errs...)	
+			}
+		} else if varName == "database_name" {
+
+			database_name_errs := this.validateDatabaseName()
+
+			if database_name_errs != nil {
+				errors = append(errors, database_name_errs...)	
+			}
+		} else if varName == "database_create_options" {
+			database_create_options_errs := ((*this).GetDatabaseCreateOptions()).Validate()
+
+			if database_create_options_errs != nil {
+				errors = append(errors, database_create_options_errs...)	
+			}
+		} else if varName == "extra_options" {
+			extra_options_errs := (*this).validateExtraOptions()
+
+			if extra_options_errs != nil {
+				errors = append(errors, extra_options_errs...)	
+			}
+		} else {
+			if !IsUpper(varName) {
+				errors = append(errors, fmt.Errorf("%s field is not being validated for Crendentials", varName))	
+			}
+		}	
 	}
 
 	if len(errors) > 0 {
@@ -76,6 +95,29 @@ func (this *Database) Validate() []error {
 
 	return nil
 }
+
+func (this *Database) validateExtraOptions()  ([]error) {
+	var errors []error 
+	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ "
+	for key, value := range (*this).GetExtraOptions() {
+		key_extra_options_errors := ValidateCharacters(VALID_CHARACTERS, &key, "extra_options key")
+		if key_extra_options_errors != nil {
+			errors = append(errors, key_extra_options_errors...)	
+		}
+
+		value_extra_options_errors := ValidateCharacters(VALID_CHARACTERS, &value, "extra_options value")
+		if value_extra_options_errors != nil {
+			errors = append(errors, value_extra_options_errors...)	
+		}
+	}
+
+	if len(errors) > 0 {
+		return errors
+	}
+
+	return nil
+}
+
 
 func (this *Database) validateHost()  ([]error) {
 	var errors []error 
