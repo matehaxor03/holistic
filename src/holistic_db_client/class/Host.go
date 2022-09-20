@@ -4,6 +4,53 @@ import (
 	"fmt"
 )
 
+func Contains(array []string, str *string, label string) []error {
+	for _, array_value := range array {
+		if array_value == *str {
+			return nil
+		}
+	}
+
+	var errors []error 
+    errors = append(errors, fmt.Errorf("%s has value '%s' expected to have value in %s", label, (*str) , array))
+	return errors
+}
+
+func ValidateCharacters(whitelist string, str *string, label string) ([]error) {
+	var errors []error 
+
+	if str == nil {
+		errors = append(errors, fmt.Errorf("%s is nil", label))
+		return errors
+	}
+
+	if *str == "" {
+		errors = append(errors, fmt.Errorf("%s is empty", label))
+		return errors
+	}
+
+	for _, letter := range *str {
+		found := false
+
+		for _, check := range whitelist {
+			if check == letter {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			errors = append(errors, fmt.Errorf("invalid letter %s for %s please use %s", string(letter), label, whitelist))
+		}
+	}
+	
+	if len(errors) > 0 {
+		return errors
+	}
+
+	return nil
+ }
+
 type Host struct {
     host_name *string
 	port_number *string
@@ -18,14 +65,14 @@ func NewHost(host_name *string, port_number *string) (*Host) {
 func (this *Host) Validate() []error {
 	var errors []error 
 
-	host_errs := (*this).ValidateHostname()
+	host_errs := (*this).validateHostname()
 
 	if host_errs != nil {
 		errors = append(errors, host_errs...)	
 	}
 
 
-	port_errs :=  (*this).ValidatePort()
+	port_errs :=  (*this).validatePort()
 
 	if port_errs != nil {
 		errors = append(errors, port_errs...)	
@@ -38,53 +85,15 @@ func (this *Host) Validate() []error {
 	return nil
 }
 
-func (this *Host) ValidateHostname() ([]error) {
+func (this *Host) validateHostname() ([]error) {
 	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789."
-	var errors []error 
-
-	if (*this).host_name == nil || *((*this).host_name) == "" {
-		errors = append(errors, fmt.Errorf("host_name cannot have an empty value"))
-		return errors
-	}
-
-	return this.ValidateCharacters(VALID_CHARACTERS, (*this).host_name)
+	return ValidateCharacters(VALID_CHARACTERS, (*this).GetHostName(), "host_name")
 }
 
-func (this *Host) ValidatePort() ([]error) {
+func (this *Host) validatePort() ([]error) {
 	var VALID_CHARACTERS = "1234567890"
-	var errors []error 
-
-	if (*this).port_number == nil || *((*this).port_number) == "" {
-		errors = append(errors, fmt.Errorf("port_number cannot have an empty value"))
-		return errors
-	}
-
-	return this.ValidateCharacters(VALID_CHARACTERS, (*this).port_number)
+	return ValidateCharacters(VALID_CHARACTERS, (*this).GetPortNumber(), "port")
 }
-
-func (this *Host) ValidateCharacters(whitelist string, str *string) ([]error) {
-	var errors []error 
-	for _, letter := range *str {
-		found := false
-
-		for _, check := range whitelist {
-			if check == letter {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			errors = append(errors, fmt.Errorf("invalid letter detected %s", string(letter)))
-		}
-	}
-	
-	if len(errors) > 0 {
-		return errors
-	}
-
-	return nil
- }
 
  func (this *Host) GetHostName() (*string) {
 	return (*this).host_name

@@ -1,9 +1,5 @@
 package class
 
-import (
-	"fmt"
-)
-
 type DatabaseCreateOptions struct {
 	character_set *string
 	collate *string
@@ -61,18 +57,6 @@ func (this *DatabaseCreateOptions) validateCollate() ([]error) {
 	}
 
 	return Contains((*this).COLLATES, (*this).collate, "collate")
-}
-
- func Contains(array []string, str *string, label string) []error {
-	for _, array_value := range array {
-		if array_value == *str {
-			return nil
-		}
-	}
-
-	var errors []error 
-    errors = append(errors, fmt.Errorf("%s has value '%s' expected to have value in %s", label, (*str) , array))
-	return errors
 }
 
 func (this *DatabaseCreateOptions) GetCharacterSet() *string {

@@ -99,53 +99,7 @@ func (this *Database) validateCredentials()  ([]error) {
 
 func (this *Database) validateDatabaseName() ([]error) {
 	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	return (*this).validateCharacters(VALID_CHARACTERS, (*this).database_name, "database_name")
-}
-
-func (this *Database) validateCharacters(whitelist string, str *string, label string) ([]error) {
-	var errors []error 
-	if str == nil {
-		errors = append(errors, fmt.Errorf("%s is nil", label))
-		return errors
-	}
-
-	if *str == "" {
-		errors = append(errors, fmt.Errorf("%s is empty", label))
-		return errors
-	}
-
-	for _, letter := range *str {
-		found := false
-
-		for _, check := range whitelist {
-			if check == letter {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			errors = append(errors, fmt.Errorf("invalid letter detected %s", string(letter)))
-		}
-	}
-	
-	if len(errors) > 0 {
-		return errors
-	}
-
-	return nil
- }
-
- func (this *Database) contains(array []string, str *string, label string) []error {
-	for _, array_value := range array {
-		if array_value == *str {
-			return nil
-		}
-	}
-
-	var errors []error 
-    errors = append(errors, fmt.Errorf("%s has value '%s' expected to have value in %s", label, (*str) , array))
-	return errors
+	return ValidateCharacters(VALID_CHARACTERS, (*this).database_name, "database_name")
 }
 
 func (this *Database) GetDatabaseName() *string {
@@ -194,7 +148,7 @@ func (this *Database) createDatabase() (*Database, *string, []error) {
 func (this *Database) getCLSCRUDDatabaseCommand(command string, options map[string]string) (*string, []error) {
 	var errors []error 
 
-	command_errs := (*this).contains((*this).DATA_DEFINITION_STATEMENTS, &command, "command")
+	command_errs := Contains((*this).DATA_DEFINITION_STATEMENTS, &command, "command")
 
 	if command_errs != nil {
 		errors = append(errors, command_errs...)	
@@ -211,7 +165,7 @@ func (this *Database) getCLSCRUDDatabaseCommand(command string, options map[stri
 	    logic_option_value, logic_option_exists := options[(*this).LOGIC_OPTION_FIELD]
 		if command == (*this).DATA_DEFINITION_STATEMENT_CREATE &&
 		   logic_option_exists {
-		    logic_option_errors := (*this).contains((*this).LOGIC_OPTION_CREATE_OPTIONS, &logic_option_value, "logic")
+		    logic_option_errors := Contains((*this).LOGIC_OPTION_CREATE_OPTIONS, &logic_option_value, "logic")
 			if logic_option_errors != nil {
 				errors = append(errors, logic_option_errors...)	
 			} else {
