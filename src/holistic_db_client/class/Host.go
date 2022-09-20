@@ -2,6 +2,7 @@ package class
 
 import (
 	"fmt"
+	"reflect"
 )
 
 func Contains(array []string, str *string, label string) []error {
@@ -64,18 +65,26 @@ func NewHost(host_name *string, port_number *string) (*Host) {
 
 func (this *Host) Validate() []error {
 	var errors []error 
+	e := reflect.ValueOf(this).Elem()
+	
+    for i := 0; i < e.NumField(); i++ {
+		varName := e.Type().Field(i).Name
 
-	host_errs := (*this).validateHostname()
+		if varName == "host_name" {
+			host_errs := (*this).validateHostname()
 
-	if host_errs != nil {
-		errors = append(errors, host_errs...)	
-	}
+			if host_errs != nil {
+				errors = append(errors, host_errs...)	
+			}
+		} else if varName == "port_number" {
+			port_errs :=  (*this).validatePort()
 
-
-	port_errs :=  (*this).validatePort()
-
-	if port_errs != nil {
-		errors = append(errors, port_errs...)	
+			if port_errs != nil {
+				errors = append(errors, port_errs...)	
+			}
+		} else {
+			errors = append(errors, fmt.Errorf("%s field is not being validated for Crendentials", varName))	
+		}
 	}
 
 	if len(errors) > 0 {
