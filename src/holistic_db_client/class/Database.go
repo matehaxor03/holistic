@@ -10,11 +10,7 @@ type Database struct {
 	host *Host
 	credentials *Credentials
     database_name *string
-	character_set *string
-	collate *string
-	CHARACTER_SETS []string
-	COLLATES []string
-	
+	database_create_options *DatabaseCreateOptions
 	
 	DATA_DEFINITION_STATEMENT_CREATE string
 	DATA_DEFINITION_STATEMENTS []string
@@ -24,11 +20,8 @@ type Database struct {
 	LOGIC_OPTION_CREATE_OPTIONS []string
 }
 
-func NewDatabase(host *Host, credentials *Credentials, database_name *string, character_set *string, collate *string, options map[string]string) (*Database, *string, []error) {
-	x := Database{host: host, credentials: credentials, database_name: database_name, character_set: character_set, collate: collate}
-	
-	x.CHARACTER_SETS = []string{"utf8"}
-	x.COLLATES = []string{"utf8_general_ci"}
+func NewDatabase(host *Host, credentials *Credentials, database_name *string, database_create_options *DatabaseCreateOptions, options map[string]string) (*Database, *string, []error) {
+	x := Database{host: host, credentials: credentials, database_name: database_name, database_create_options: database_create_options}
 	
 	x.DATA_DEFINITION_STATEMENT_CREATE = "CREATE"
 	x.DATA_DEFINITION_STATEMENTS = []string{x.DATA_DEFINITION_STATEMENT_CREATE}
@@ -65,17 +58,11 @@ func (this *Database) Validate() []error {
 	if db_name_errs != nil {
 		errors = append(errors, db_name_errs...)	
 	}
+	
+	database_create_options_errs := ((*this).GetDatabaseCreateOptions()).Validate()
 
-	character_set_errs := (*this).validateCharacterSet()
-
-	if character_set_errs != nil {
-		errors = append(errors, character_set_errs...)	
-	}
-
-	collate_errs :=  (*this).validateCollate()
-
-	if collate_errs != nil {
-		errors = append(errors, collate_errs...)	
+	if database_create_options_errs != nil {
+		errors = append(errors, database_create_options_errs...)	
 	}
 
 	if len(errors) > 0 {
@@ -108,22 +95,6 @@ func (this *Database) validateCredentials()  ([]error) {
 func (this *Database) validateDatabaseName() ([]error) {
 	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	return (*this).validateCharacters(VALID_CHARACTERS, (*this).database_name, "database_name")
-}
-
-func (this *Database) validateCharacterSet() ([]error) {
-	if (*this).character_set == nil {
-		return nil
-	}
-
-	return (*this).contains((*this).CHARACTER_SETS, (*this).character_set, "character_set")
-}
-
-func (this *Database) validateCollate() ([]error) {
-	if (*this).collate == nil {
-		return nil
-	}
-
-	return (*this).contains((*this).COLLATES, (*this).collate, "collate")
 }
 
 func (this *Database) validateCharacters(whitelist string, str *string, label string) ([]error) {
@@ -174,14 +145,6 @@ func (this *Database) validateCharacters(whitelist string, str *string, label st
 
 func (this *Database) GetDatabaseName() *string {
 	return (*this).database_name
-}
-
-func (this *Database) GetCharacterSet() *string {
-	return (*this).character_set
-}
-
-func (this *Database) GetCollate() *string {
-	return (*this).collate
 }
 
 func (this *Database) GetDataDefinitionStatements() []string {
@@ -275,12 +238,12 @@ func (this *Database) getCLSCRUDDatabaseCommand(command string, options map[stri
 	
 	sql_command += fmt.Sprintf("%s ", (*(*this).GetDatabaseName()))
 	
-	character_set := (*this).GetCharacterSet()
+	character_set := (*(*this).GetDatabaseCreateOptions()).GetCharacterSet()
 	if character_set != nil {
 		sql_command += fmt.Sprintf("CHARACTER SET %s ", *character_set)
 	}
 
-	collate := (*this).GetCollate()
+	collate := (*(*this).GetDatabaseCreateOptions()).GetCollate()
 	if collate != nil {
 		sql_command += fmt.Sprintf("COLLATE %s", *collate)
 	}
@@ -295,4 +258,8 @@ func (this *Database) GetHost() *Host {
 
 func (this *Database) GetCredentials() *Credentials {
 	return (*this).credentials
+}
+
+func (this *Database) GetDatabaseCreateOptions() *DatabaseCreateOptions {
+	return (*this).database_create_options
 }

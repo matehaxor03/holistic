@@ -42,9 +42,9 @@ func main() {
 	user_value, _ := params[CLS_USER] 
 	password_value, _ := params[CLS_PASSWORD] 
 
-	db_name_value, _ := params[CLS_DATABASE_NAME]
-	character_set_value, _ := params[CLS_CHARACTER_SET]
-	collate_value, _ := params[CLS_COLLATE]
+	database_name, _ := params[CLS_DATABASE_NAME]
+	character_set, _ := params[CLS_CHARACTER_SET]
+	collate, _ := params[CLS_COLLATE]
 
 	command_value, command_found := params[CLS_COMMAND] 
 	class_value, class_found := params[CLS_CLASS]
@@ -89,7 +89,9 @@ func main() {
 
 	if command_value == CREATE_COMMAND {
 		if class_value == DATABASE_CLASS {
-			_, shell_output, database_errors := class.NewDatabase(host, credentials, &db_name_value, &character_set_value, &collate_value, options)
+
+			database_create_options, _ := class.NewDatabaseCreateOptions(&character_set, &collate)
+			_, shell_output, database_errors := class.NewDatabase(host, credentials, &database_name, database_create_options, options)
 			if database_errors != nil {
 				for _, e := range database_errors {
 					fmt.Println(e)
@@ -112,24 +114,9 @@ func main() {
 	os.Exit(0)
 }
 
-func executeCreateDatabaseCommand() ([]error) {
+func CreateDatabase() ([]error) {
 	return nil
 }
-
-func ValidateDatabaseName(db_name string) ([]error) {
-	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	var errors []error 
-
-	if db_name == "" {
-		errors = append(errors, fmt.Errorf("db_name cannot have an empty value"))
-		return errors
-	}
-
-	return validateCharacters(VALID_CHARACTERS, db_name)
-}
-
-
-
 
 
 func getParams(params []string) (map[string]string, []error) {
