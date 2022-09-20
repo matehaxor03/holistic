@@ -114,10 +114,9 @@ func main() {
 	os.Exit(0)
 }
 
-func CreateDatabase() ([]error) {
-	return nil
+func CreateDatabase(host *class.Host, credentials *class.Credentials, database_name *string, database_create_options *class.DatabaseCreateOptions, options map[string]string) (*class.Database, *string, []error) {
+	return class.NewDatabase(host, credentials, database_name, database_create_options, options)
 }
-
 
 func getParams(params []string) (map[string]*string, []error) {
 	var errors []error 
