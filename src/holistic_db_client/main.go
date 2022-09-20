@@ -46,11 +46,11 @@ func main() {
 	character_set, _ := params[CLS_CHARACTER_SET]
 	collate, _ := params[CLS_COLLATE]
 
-	command_value, command_found := params[CLS_COMMAND] 
-	class_value, class_found := params[CLS_CLASS]
+	command_pt, command_found := params[CLS_COMMAND] 
+	class_pt, class_found := params[CLS_CLASS]
 	
-	command_value =  strings.ToUpper(command_value)
-	class_value = strings.ToUpper(class_value)
+	command_value :=  strings.ToUpper(*command_pt)
+	class_value := strings.ToUpper(*class_pt)
 
 	_, if_exists := params[CLS_IF_EXISTS]
 	_, if_not_exists := params[CLS_IF_NOT_EXISTS]
@@ -83,15 +83,15 @@ func main() {
 		options["logic"] = "IF EXISTS"
 	}
 
-	host := class.NewHost(&host_value, &port_value)
-	credentials :=  class.NewCredentials(&user_value, &password_value)
+	host := class.NewHost(host_value, port_value)
+	credentials :=  class.NewCredentials(user_value, password_value)
 	//client := class.NewClient()
 
 	if command_value == CREATE_COMMAND {
 		if class_value == DATABASE_CLASS {
 
-			database_create_options, _ := class.NewDatabaseCreateOptions(&character_set, &collate)
-			_, shell_output, database_errors := class.NewDatabase(host, credentials, &database_name, database_create_options, options)
+			database_create_options, _ := class.NewDatabaseCreateOptions(character_set, collate)
+			_, shell_output, database_errors := class.NewDatabase(host, credentials, database_name, database_create_options, options)
 			if database_errors != nil {
 				for _, e := range database_errors {
 					fmt.Println(e)
@@ -119,12 +119,12 @@ func CreateDatabase() ([]error) {
 }
 
 
-func getParams(params []string) (map[string]string, []error) {
+func getParams(params []string) (map[string]*string, []error) {
 	var errors []error 
-	m := make(map[string]string)
+	m := make(map[string]*string)
 	for _, value := range params {
 		if !strings.Contains(value, "=") {
-			m[value] = ""
+			m[value] = nil
 			continue
 		}
 
@@ -133,7 +133,7 @@ func getParams(params []string) (map[string]string, []error) {
 			errors = append(errors, fmt.Errorf("invalid param found: %s must be in the format {paramName}={paramValue}", value))
 			continue
 		}
-		m[results[0]] = results[1]
+		m[results[0]] = &results[1]
 	}
 
 	if len(errors) > 0 {
