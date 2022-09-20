@@ -6,7 +6,7 @@ import (
 	"os/exec"
 )
 
-type DB struct {
+type Database struct {
 	host *Host
 	credentials *Credentials
     database_name *string
@@ -21,8 +21,8 @@ type DB struct {
 	LOGIC_OPTION_CREATE_OPTIONS []string
 }
 
-func Database(host *Host, credentials *Credentials, database_name *string, database_create_options *DatabaseCreateOptions, extra_options map[string]string) (*DB) {
-	x := DB{host: host, credentials: credentials, database_name: database_name, database_create_options: database_create_options, extra_options: extra_options}
+func NewDatabase(host *Host, credentials *Credentials, database_name *string, database_create_options *DatabaseCreateOptions, extra_options map[string]string) (*Database) {
+	x := Database{host: host, credentials: credentials, database_name: database_name, database_create_options: database_create_options, extra_options: extra_options}
 	
 	x.DATA_DEFINITION_STATEMENT_CREATE = "CREATE"
 	x.DATA_DEFINITION_STATEMENTS = []string{x.DATA_DEFINITION_STATEMENT_CREATE}
@@ -34,7 +34,7 @@ func Database(host *Host, credentials *Credentials, database_name *string, datab
 	return &x
 }
 
-func (this *DB) Create() (*DB, *string, []error)  {
+func (this *Database) Create() (*Database, *string, []error)  {
 	this, result, errors := (*this).createDatabase()
 	if errors != nil {
 		return nil, result, errors
@@ -43,7 +43,7 @@ func (this *DB) Create() (*DB, *string, []error)  {
 	return this, result, nil
 }
 
-func (this *DB) Validate() []error {
+func (this *Database) Validate() []error {
 	var errors []error 
 
 	host_errs := (*this).validateHost()
@@ -77,7 +77,7 @@ func (this *DB) Validate() []error {
 	return nil
 }
 
-func (this *DB) validateHost()  ([]error) {
+func (this *Database) validateHost()  ([]error) {
 	var errors []error 
 	if (*this).GetHost() == nil {
 		errors = append(errors, fmt.Errorf("host is nil"))
@@ -87,7 +87,7 @@ func (this *DB) validateHost()  ([]error) {
 	return (*((*this).GetHost())).Validate()
 }
 
-func (this *DB) validateCredentials()  ([]error) {
+func (this *Database) validateCredentials()  ([]error) {
 	var errors []error 
 	if (*this).GetCredentials() == nil {
 		errors = append(errors, fmt.Errorf("credentials is nil"))
@@ -97,12 +97,12 @@ func (this *DB) validateCredentials()  ([]error) {
 	return (*((*this).GetCredentials())).Validate()
 }
 
-func (this *DB) validateDatabaseName() ([]error) {
+func (this *Database) validateDatabaseName() ([]error) {
 	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	return (*this).validateCharacters(VALID_CHARACTERS, (*this).database_name, "database_name")
 }
 
-func (this *DB) validateCharacters(whitelist string, str *string, label string) ([]error) {
+func (this *Database) validateCharacters(whitelist string, str *string, label string) ([]error) {
 	var errors []error 
 	if str == nil {
 		errors = append(errors, fmt.Errorf("%s is nil", label))
@@ -136,7 +136,7 @@ func (this *DB) validateCharacters(whitelist string, str *string, label string) 
 	return nil
  }
 
- func (this *DB) contains(array []string, str *string, label string) []error {
+ func (this *Database) contains(array []string, str *string, label string) []error {
 	for _, array_value := range array {
 		if array_value == *str {
 			return nil
@@ -148,15 +148,15 @@ func (this *DB) validateCharacters(whitelist string, str *string, label string) 
 	return errors
 }
 
-func (this *DB) GetDatabaseName() *string {
+func (this *Database) GetDatabaseName() *string {
 	return (*this).database_name
 }
 
-func (this *DB) GetDataDefinitionStatements() []string {
+func (this *Database) GetDataDefinitionStatements() []string {
 	return (*this).DATA_DEFINITION_STATEMENTS
 }
 
-func (this *DB) createDatabase() (*DB, *string, []error) {
+func (this *Database) createDatabase() (*Database, *string, []error) {
 	var errors []error 
 	crud_sql_command, crud_command_errors := (*this).getCLSCRUDDatabaseCommand((*this).DATA_DEFINITION_STATEMENT_CREATE, (*this).GetExtraOptions())
 
@@ -191,7 +191,7 @@ func (this *DB) createDatabase() (*DB, *string, []error) {
 }
 
 
-func (this *DB) getCLSCRUDDatabaseCommand(command string, options map[string]string) (*string, []error) {
+func (this *Database) getCLSCRUDDatabaseCommand(command string, options map[string]string) (*string, []error) {
 	var errors []error 
 
 	command_errs := (*this).contains((*this).DATA_DEFINITION_STATEMENTS, &command, "command")
@@ -257,18 +257,18 @@ func (this *DB) getCLSCRUDDatabaseCommand(command string, options map[string]str
 	return &sql_command, nil
 }
 
-func (this *DB) GetHost() *Host {
+func (this *Database) GetHost() *Host {
 	return (*this).host
 }
 
-func (this *DB) GetCredentials() *Credentials {
+func (this *Database) GetCredentials() *Credentials {
 	return (*this).credentials
 }
 
-func (this *DB) GetDatabaseCreateOptions() *DatabaseCreateOptions {
+func (this *Database) GetDatabaseCreateOptions() *DatabaseCreateOptions {
 	return (*this).database_create_options
 }
 
-func (this *DB) GetExtraOptions() map[string]string {
+func (this *Database) GetExtraOptions() map[string]string {
 	return (*this).extra_options
 }

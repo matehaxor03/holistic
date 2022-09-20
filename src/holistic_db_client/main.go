@@ -115,8 +115,8 @@ func main() {
 	os.Exit(0)
 }
 
-func CreateDatabase(host *class.Host, credentials *class.Credentials, database_name *string, database_create_options *class.DatabaseCreateOptions, options map[string]string) (*class.DB, *string, []error) {
-	return class.Database(host, credentials, database_name, database_create_options, options).Create()
+func CreateDatabase(host *class.Host, credentials *class.Credentials, database_name *string, database_create_options *class.DatabaseCreateOptions, options map[string]string) (*class.Database, *string, []error) {
+	return class.NewDatabase(host, credentials, database_name, database_create_options, options).Create()
 }
 
 func getParams(params []string) (map[string]*string, []error) {
