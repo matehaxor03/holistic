@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"os/exec"
 	"reflect"
+	"strings"
 )
 
 type Database struct {
@@ -20,6 +21,8 @@ type Database struct {
 	LOGIC_OPTION_FIELD string
 	LOGIC_OPTION_IF_NOT_EXISTS string
 	LOGIC_OPTION_CREATE_OPTIONS []string
+
+	VALIDATION_FUNCTIONS map[string]func() []error
 }
 
 func NewDatabase(host *Host, credentials *Credentials, database_name *string, database_create_options *DatabaseCreateOptions, extra_options map[string]string) (*Database) {
@@ -32,7 +35,18 @@ func NewDatabase(host *Host, credentials *Credentials, database_name *string, da
 	x.LOGIC_OPTION_IF_NOT_EXISTS = "IF NOT EXISTS"
 	x.LOGIC_OPTION_CREATE_OPTIONS = []string{x.LOGIC_OPTION_IF_NOT_EXISTS}
 	
+	x.VALIDATION_FUNCTIONS = make(map[string]func() []error)
+	x.InitValidationFunctions()
+
 	return &x
+}
+
+func (this *Database) InitValidationFunctions() ()  {
+	(*this).VALIDATION_FUNCTIONS["validateHost"] = (*this).validateHost
+	(*this).VALIDATION_FUNCTIONS["validateCredentials"] = (*this).validateCredentials
+	(*this).VALIDATION_FUNCTIONS["validateDatabaseName"] = (*this).validateDatabaseName
+	(*this).VALIDATION_FUNCTIONS["validateDatabaseCreateOptions"] = (*this).validateDatabaseCreateOptions
+	(*this).VALIDATION_FUNCTIONS["validateExtraOptions"] = (*this).validateExtraOptions
 }
 
 func (this *Database) Create() (*Database, *string, []error)  {
@@ -46,11 +60,55 @@ func (this *Database) Create() (*Database, *string, []error)  {
 
 func (this *Database) Validate() []error {
 	var errors []error 
-	e := reflect.ValueOf(this).Elem()
+	reflected_value := reflect.ValueOf(this)
+
+	refected_element := reflected_value.Elem()
 	
-    for i := 0; i < e.NumField(); i++ {
-		varName := e.Type().Field(i).Name
+
+	
+    for i := 0; i < refected_element.NumField(); i++ {
+		varName := refected_element.Type().Field(i).Name
+		if IsUpper(varName) {
+			continue
+		}
+
+		varName = strings.Replace(varName, "_", " ", -1)
+		varName = strings.Title(strings.ToLower(varName))
+		varName = strings.Replace(varName, " ", "", -1)
+		varName = "validate" + varName
+
 		
+
+		//method := reflected_value.MethodByName(varName)
+		//method.Call([]reflect.Value{})
+
+		//function := (*this).VALIDATION_FUNCTIONS[varName]
+
+		method, found_method := (*this).VALIDATION_FUNCTIONS[varName]
+		if !found_method {
+			errors = append(errors, fmt.Errorf("validation method: %s not found for %s please add to InitValidationFunctions", varName, reflected_value.Type()))	
+		} else {
+			relection_errors := method()
+			if relection_errors != nil{
+				errors = append(errors, relection_errors...)
+			}
+		}
+
+	
+		
+/*
+		method := reflect.ValueOf(this).MethodByName(varName)
+		method_result := method.Call(nil)
+		method_errors := reflect.ValueOf(method_result[0])
+		if method_errors != nil {
+			reflect_errors := method_errors.Interface().([]error)
+			if reflect_errors != nil {
+				errors = append(errors, reflect_errors...)	
+			}
+		}*/
+		
+		
+		/*
 		if varName == "host" {	
 			host_errs := (*this).validateHost()
 
@@ -86,7 +144,7 @@ func (this *Database) Validate() []error {
 			if !IsUpper(varName) {
 				errors = append(errors, fmt.Errorf("%s field is not being validated for Crendentials", varName))	
 			}
-		}	
+		}	*/
 	}
 
 	if len(errors) > 0 {
@@ -94,6 +152,14 @@ func (this *Database) Validate() []error {
 	}
 
 	return nil
+}
+
+func (this *Database) validateDatabaseCreateOptions()  ([]error) {
+	if (*this).GetDatabaseCreateOptions() == nil {
+		return nil
+	}
+
+	return (*((*this).GetDatabaseCreateOptions())).Validate()
 }
 
 func (this *Database) validateExtraOptions()  ([]error) {
