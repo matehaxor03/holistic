@@ -9,10 +9,10 @@ import (
 
 func main() {
 	var errors []error 
-	const CLS_USER string = "user"
+	const CLS_USER string = "username"
 	const CLS_PASSWORD string = "password"
-	const CLS_HOST string = "host"
-	const CLS_PORT string = "port"
+	const CLS_HOST string = "host_name"
+	const CLS_PORT string = "port_number"
 	const CLS_COMMAND string = "command"
 	const CLS_CLASS string = "class"
 	const CLS_IF_EXISTS string = "if_exists"
@@ -24,10 +24,8 @@ func main() {
 
 
 	var CREATE_COMMAND = "CREATE"
-	var COMMANDS = []string{CREATE_COMMAND}
 	
 	var DATABASE_CLASS = "DATABASE"
-	var CLASSES = []string{DATABASE_CLASS}
 
 	//var IF_EXISTS string = "IF EXISTS"
 	//var IF_NOT_EXISTS string = "IF NOT EXISTS"
@@ -48,72 +46,64 @@ func main() {
 	character_set_value, _ := params[CLS_CHARACTER_SET]
 	collate_value, _ := params[CLS_COLLATE]
 
-
-	host := class.NewHost(&host_value, &port_value)
-	host.Validate()
-
-	creds :=  class.NewCredentials(&user_value, &password_value)
-	creds.Validate()
-
-	database := class.NewDatabase(host, &db_name_value, &character_set_value, &collate_value)
-	database.Validate()
-
-	client := class.NewClient()
-	fmt.Println(fmt.Errorf("%s", client))
-
-
-	if len(errors) > 0 {
-		fmt.Println(fmt.Errorf("%s", errors))
-		os.Exit(1)
-	}
-
 	command_value, command_found := params[CLS_COMMAND] 
-	if !command_found || command_value == "" {
-		fmt.Printf("%s is a mandatory field available commands: %s", CLS_COMMAND, strings.Join(COMMANDS,","))
-		os.Exit(1)
-	}
-
-	command_value = strings.ToUpper(command_value)
-	if !contains(COMMANDS, command_value) {
-		fmt.Printf("%s is an invalid command available commands: %s", command_value, strings.Join(COMMANDS,",") )
-		os.Exit(1)
-	}
-
-	class_value, found := params[CLS_CLASS]
-	if !found || class_value == ""{
-		fmt.Printf("%s is a mandatory field available classes %s", CLS_CLASS,  strings.Join(CLASSES,","))
-		os.Exit(1)
-	} 
-
+	class_value, class_found := params[CLS_CLASS]
+	
+	command_value =  strings.ToUpper(command_value)
 	class_value = strings.ToUpper(class_value)
 
-	_, if_exists_found := params[CLS_IF_EXISTS]
-	_, if_not_exists_found := params[CLS_IF_NOT_EXISTS]
+	_, if_exists := params[CLS_IF_EXISTS]
+	_, if_not_exists := params[CLS_IF_NOT_EXISTS]
 
+	host := class.NewHost(&host_value, &port_value)
+	credentials :=  class.NewCredentials(&user_value, &password_value)
+	database := class.NewDatabase(host, &db_name_value, &character_set_value, &collate_value)
+	client := class.NewClient()
+	
+	if if_exists && if_not_exists {
+		errors = append(errors, fmt.Errorf("%s and %s cannot be used together", CLS_IF_EXISTS, CLS_IF_NOT_EXISTS))
+	}
 
-	if if_exists_found && if_not_exists_found {
-		fmt.Printf("%s and %s cannot be used together", CLS_IF_EXISTS, CLS_IF_NOT_EXISTS)
+	if !command_found {
+		errors = append(errors, fmt.Errorf("%s is a mandatory field e.g %s=", CLS_COMMAND, CLS_COMMAND))
+	}
+
+	if !class_found {
+		errors = append(errors, fmt.Errorf("%s is a mandatory field e.g %s=", CLS_CLASS, CLS_CLASS))
+	}
+
+	if errors != nil {
+		for _, e := range errors {
+			fmt.Println(e)
+		}
 		os.Exit(1)
 	}
 
 	if command_value == CREATE_COMMAND {
 		if class_value == DATABASE_CLASS {
-			
+			host_session, client_errors := client.Login(host, credentials)
+			if client_errors != nil {
+				for _, e := range client_errors {
+					fmt.Println(e)
+				}
+				os.Exit(1)
+			}
 
-
+			if if_not_exists {
+				host_session.Create_Database_If_Not_Exists(database)
+			} else {
+				fmt.Printf("not implemented yet")
+				os.Exit(1)
+			}
 		} else {
 			fmt.Printf("class: %s is not supported", class_value)
 			os.Exit(1)
 		}
-
+	} else {
+		fmt.Printf("command: %s is not supported", command_value)
+		os.Exit(1)
 	}
 	
-
-
-
-
-
-
 	os.Exit(0)
 }
 

@@ -2,15 +2,16 @@ package class
 
 import (
 	"fmt"
+	"reflect"
 )
 
 type Credentials struct {
-	user *string
+	username *string
 	password *string
 }
 
-func NewCredentials(user *string, password *string) (*Credentials) {
-	x := Credentials{user: user,
+func NewCredentials(username *string, password *string) (*Credentials) {
+	x := Credentials{username: username,
 			    password: password}
 
 	return &x
@@ -19,18 +20,27 @@ func NewCredentials(user *string, password *string) (*Credentials) {
 func (this *Credentials) Validate() []error {
 	var errors []error 
 
-	user_errs := (*this).ValidateUser()
-
-	if user_errs != nil {
-		errors = append(errors, user_errs...)	
-	}
-
-	password_errs := (*this).ValidatePassword()
-
-	if password_errs != nil {
-		errors = append(errors, password_errs...)	
-	}
+	e := reflect.ValueOf(this).Elem()
 	
+    for i := 0; i < e.NumField(); i++ {
+		varName := e.Type().Field(i).Name
+		
+		if varName == "username" {
+			user_errs := (*this).ValidateUsername()
+			if user_errs != nil {
+				errors = append(errors, user_errs...)	
+			}
+		} else if varName == "password" {
+			password_errs := (*this).ValidatePassword()
+
+			if password_errs != nil {
+				errors = append(errors, password_errs...)	
+			}
+		} else {
+			errors = append(errors, fmt.Errorf("%s field is not being validated for Crendentials", varName))	
+		}
+	}
+		
 	if len(errors) > 0 {
 		return errors
 	}
@@ -38,25 +48,25 @@ func (this *Credentials) Validate() []error {
 	return nil
 }
 
-func (this *Credentials) ValidateUser() ([]error) {
+func (this *Credentials) ValidateUsername() ([]error) {
 	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	return this.ValidateCharacters(VALID_CHARACTERS, (*this).user)
+	return this.ValidateCharacters(VALID_CHARACTERS, (*this).GetUsername(), "username")
 }
 
  func (this *Credentials) ValidatePassword() ([]error) {
 	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789="
-	return this.ValidateCharacters(VALID_CHARACTERS, this.password)
+	return this.ValidateCharacters(VALID_CHARACTERS, (*this).GetPassword(), "password")
 }
 
-func (this *Credentials) ValidateCharacters(whitelist string, str *string) ([]error) {
+func (this *Credentials) ValidateCharacters(whitelist string, str *string, label string) ([]error) {
 	var errors []error 
 	if str == nil {
-		errors = append(errors, fmt.Errorf("string is nil"))
+		errors = append(errors, fmt.Errorf("%s is nil", label))
 		return errors
 	}
 
 	if *str == "" {
-		errors = append(errors, fmt.Errorf("string is empty"))
+		errors = append(errors, fmt.Errorf("%s is empty", label))
 		return errors
 	}
 
@@ -71,7 +81,7 @@ func (this *Credentials) ValidateCharacters(whitelist string, str *string) ([]er
 		}
 
 		if !found {
-			errors = append(errors, fmt.Errorf("invalid letter detected %s", string(letter)))
+			errors = append(errors, fmt.Errorf("invalid letter detected %s for %s", string(letter), label))
 		}
 	}
 	
@@ -81,3 +91,12 @@ func (this *Credentials) ValidateCharacters(whitelist string, str *string) ([]er
 
 	return nil
  }
+
+ func (this *Credentials) GetUsername() *string {
+	return (*this).username
+ }
+
+ func (this *Credentials) GetPassword() *string {
+	return (*this).password
+ }
+

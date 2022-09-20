@@ -1,12 +1,18 @@
 package class
 
+import (
+	"fmt"
+	"bytes"
+	"os/exec"
+)
+
 type HostSession struct {
 	host *Host
-	creds *Credentials
+	credentials *Credentials
 }
 
-func NewHostSession(host *Host, creds *Credentials) (*HostSession) {
-	x := HostSession{host: host, creds: creds}
+func NewHostSession(host *Host, credentials *Credentials) (*HostSession) {
+	x := HostSession{host: host, credentials: credentials}
 	return &x
 }
 
@@ -20,7 +26,7 @@ func (this *HostSession) Validate() []error {
 	}
 
 
-	creds_errs :=  (*(*this).creds).Validate()
+	creds_errs := (*(*this).GetCredentials()).Validate()
 
 	if creds_errs != nil {
 		errors = append(errors, creds_errs...)	
@@ -51,26 +57,41 @@ func (this *HostSession) Create_Database_If_Not_Exists(database *Database) []err
 		return errors
 	}
 
-	//CREATE DATABASE IF NOT EXISTS " + db_name + " CHARACTER SET utf8 COLLATE utf8_general_ci
-	command := fmt.Printf("CREATE DATABASE IF NOT EXISTS %s", (*database).GetDatabaseName())
+	credentials := (*(*this).GetCredentials())
+	username := *(credentials.GetUsername())
+	password := *(credentials.GetPassword())
+
+	command := fmt.Sprintf("mysql -u %s -p %s", username, password)
+	command += fmt.Sprintf(" -e \"CREATE DATABASE IF NOT EXISTS %s", (*database).GetDatabaseName())
 
 	character_set := (*database).GetCharacterSet()
 	if character_set != nil {
-		command += fmt.Printf(" CHARACTER SET %s", character_set)
+		command += fmt.Sprintf(" CHARACTER SET %s", character_set)
 	}
 
 	collate := (*database).GetCollate()
 	if collate != nil {
-		command += fmt.Printf(" COLLATE %s", collate)
+		command += fmt.Sprintf(" COLLATE %s", collate)
 	}
 
-	command += ";"
+	command += ";\""
 
-	// execute mysql command
+	// execute mysql command  mysql -u root -pmy_password -D DATABASENAME -e "UPDATE `database` SET `field1` = '1' WHERE `id` = 1111;" > output.txt 
+	cmd := exec.Command(command)
 
+    var out bytes.Buffer
+    cmd.Stdout = &out
+
+    command_err := cmd.Run()
+
+    if command_err != nil {
+		errors = append(errors, command_err)	
+	}
+
+    fmt.Printf("translated phrase: %q\n", out.String())
 	return nil
 }
 
-
-
-
+func (this *HostSession) GetCredentials() *Credentials {
+	return (*this).credentials
+}
