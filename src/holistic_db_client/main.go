@@ -91,9 +91,8 @@ func main() {
 		if class_value == DATABASE_CLASS {
 
 			database_create_options, _ := class.NewDatabaseCreateOptions(character_set, collate)
-			database := class.NewDatabase(host, credentials, database_name, database_create_options, options)
+			_, shell_output, database_errors := CreateDatabase(host, credentials, database_name, database_create_options, options)
 			
-			 _, shell_output, database_errors := database.Create()
 			if database_errors != nil {
 				for _, e := range database_errors {
 					fmt.Println(e)
@@ -116,8 +115,8 @@ func main() {
 	os.Exit(0)
 }
 
-func CreateDatabase(host *class.Host, credentials *class.Credentials, database_name *string, database_create_options *class.DatabaseCreateOptions, options map[string]string) (*class.Database, *string, []error) {
-	return class.NewDatabase(host, credentials, database_name, database_create_options, options).Create()
+func CreateDatabase(host *class.Host, credentials *class.Credentials, database_name *string, database_create_options *class.DatabaseCreateOptions, options map[string]string) (*class.DB, *string, []error) {
+	return class.Database(host, credentials, database_name, database_create_options, options).Create()
 }
 
 func getParams(params []string) (map[string]*string, []error) {
