@@ -1,4 +1,4 @@
-module holistic-db-init
+module infoencryptions.com/holistic_db_init
 
 go 1.19
 

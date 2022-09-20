@@ -17,7 +17,6 @@ import (
 func main() {
 	errors := InitDB()
 	if errors != nil {
-		errs := fmt.Errorf("%s", errors)
 		fmt.Println(fmt.Errorf("%s", errors))
 		os.Exit(1)
 	}
