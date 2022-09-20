@@ -1,3 +1,3 @@
-module holistic-db-client
+module infoencryptions.com/holistic_db_client
 
 go 1.19
