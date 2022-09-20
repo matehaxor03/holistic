@@ -50,47 +50,13 @@ func (this *Credentials) Validate() []error {
 
 func (this *Credentials) ValidateUsername() ([]error) {
 	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	return this.ValidateCharacters(VALID_CHARACTERS, (*this).GetUsername(), "username")
+	return ValidateCharacters(VALID_CHARACTERS, (*this).GetUsername(), "username")
 }
 
  func (this *Credentials) ValidatePassword() ([]error) {
 	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789="
-	return this.ValidateCharacters(VALID_CHARACTERS, (*this).GetPassword(), "password")
+	return ValidateCharacters(VALID_CHARACTERS, (*this).GetPassword(), "password")
 }
-
-func (this *Credentials) ValidateCharacters(whitelist string, str *string, label string) ([]error) {
-	var errors []error 
-	if str == nil {
-		errors = append(errors, fmt.Errorf("%s is nil", label))
-		return errors
-	}
-
-	if *str == "" {
-		errors = append(errors, fmt.Errorf("%s is empty", label))
-		return errors
-	}
-
-	for _, letter := range *str {
-		found := false
-
-		for _, check := range whitelist {
-			if check == letter {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			errors = append(errors, fmt.Errorf("invalid letter detected %s for %s", string(letter), label))
-		}
-	}
-	
-	if len(errors) > 0 {
-		return errors
-	}
-
-	return nil
- }
 
  func (this *Credentials) GetUsername() *string {
 	return (*this).username
