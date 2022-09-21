@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	class "infoencryptions.com/holistic_db_client/class"
+	class "github.com/holistic_db_client/class"
 )
 
 func main() {
