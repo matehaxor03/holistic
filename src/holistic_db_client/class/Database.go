@@ -40,8 +40,6 @@ func NewDatabase(host *Host, credentials *Credentials, database_name *string, da
 	x.validation_functions = make(map[string]func() []error)
 	x.InitValidationFunctions()
 
-
-
 	return &x
 }
 
@@ -106,7 +104,7 @@ func (this *Database) validateConstants()  ([]error) {
 		} else {
 			panic(fmt.Sprintf("please implement validation for constant value %s", fieldName))
 		}
-				
+
 		character_errors := ValidateCharacters(VALID_CHARACTERS, &string_fieldValue, fieldName)
 		if character_errors != nil {
 			errors = append(errors, character_errors...)
