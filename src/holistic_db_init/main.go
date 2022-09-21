@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	
+	class "holistic_db_client/class"
 
 	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
@@ -110,6 +112,10 @@ func InitDB() []error {
 		defer db.Close()
 		return errors
 	}
+
+	host := class.NewHost(db_hostname, db_port_number)
+	credentials :=  class.NewCredentials(root_db_username, root_db_password)
+	client := class.NewClient(host, credentials, nil)
 
 	_, database_creation_err := db.Exec("CREATE DATABASE IF NOT EXISTS " + db_name + " CHARACTER SET utf8 COLLATE utf8_general_ci")
 	if database_creation_err != nil {
