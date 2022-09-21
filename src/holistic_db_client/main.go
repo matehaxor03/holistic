@@ -74,13 +74,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	options := make(map[string]string)
+	options := make(map[string][]string)
 	if if_not_exists {
-		options["logic"] = "IF NOT EXISTS"
+		options["LOGIC"] = []string{"IF","NOT","EXISTS"}
 	}
 
 	if if_exists {
-		options["logic"] = "IF EXISTS"
+		options["LOGIC"] = []string{"IF", "EXISTS"}
 	}
 
 	host := class.NewHost(host_value, port_value)
@@ -115,7 +115,7 @@ func main() {
 	os.Exit(0)
 }
 
-func CreateDatabase(host *class.Host, credentials *class.Credentials, database_name *string, database_create_options *class.DatabaseCreateOptions, options map[string]string) (*class.Database, *string, []error) {
+func CreateDatabase(host *class.Host, credentials *class.Credentials, database_name *string, database_create_options *class.DatabaseCreateOptions, options map[string][]string) (*class.Database, *string, []error) {
 	return class.NewDatabase(host, credentials, database_name, database_create_options, options).Create()
 }
 

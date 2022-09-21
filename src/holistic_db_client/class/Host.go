@@ -5,18 +5,6 @@ import (
 	"reflect"
 )
 
-func Contains(array []string, str *string, label string) []error {
-	for _, array_value := range array {
-		if array_value == *str {
-			return nil
-		}
-	}
-
-	var errors []error 
-    errors = append(errors, fmt.Errorf("%s has value '%s' expected to have value in %s", label, (*str) , array))
-	return errors
-}
-
 func ValidateCharacters(whitelist string, str *string, label string) ([]error) {
 	var errors []error 
 
