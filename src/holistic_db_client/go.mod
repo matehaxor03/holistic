@@ -1,3 +1,3 @@
-module holistic_db_client
+module github.com/holistic_db_client
 
 go 1.19
