@@ -5,40 +5,7 @@ import (
 	"reflect"
 )
 
-func ValidateCharacters(whitelist string, str *string, label string) ([]error) {
-	var errors []error 
 
-	if str == nil {
-		errors = append(errors, fmt.Errorf("%s is nil", label))
-		return errors
-	}
-
-	if *str == "" {
-		errors = append(errors, fmt.Errorf("%s is empty", label))
-		return errors
-	}
-
-	for _, letter := range *str {
-		found := false
-
-		for _, check := range whitelist {
-			if check == letter {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			errors = append(errors, fmt.Errorf("invalid letter %s for %s please use %s", string(letter), label, whitelist))
-		}
-	}
-	
-	if len(errors) > 0 {
-		return errors
-	}
-
-	return nil
- }
 
 type Host struct {
     host_name *string
@@ -81,8 +48,6 @@ func (this *Host) Validate() []error {
 
 	return nil
 }
-
-
 
 func (this *Host) validateHostname() ([]error) {
 	var VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789."

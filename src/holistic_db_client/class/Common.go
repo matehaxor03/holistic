@@ -3,6 +3,7 @@ package class
 
 import (
 	"fmt"
+	"unicode"
 )
 
 func Contains(array []string, str *string, label string) []error {
@@ -39,3 +40,61 @@ func ArrayContainsArray(array []string, second_array []string, label string) []e
 
 	return nil
 }
+
+func ValidateCharacters(whitelist string, str *string, label string) ([]error) {
+	var errors []error 
+
+	if str == nil {
+		errors = append(errors, fmt.Errorf("%s is nil", label))
+		return errors
+	}
+
+	if *str == "" {
+		errors = append(errors, fmt.Errorf("%s is empty", label))
+		return errors
+	}
+
+	for _, letter := range *str {
+		found := false
+
+		for _, check := range whitelist {
+			if check == letter {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			errors = append(errors, fmt.Errorf("invalid letter %s for %s please use %s", string(letter), label, whitelist))
+		}
+	}
+	
+	if len(errors) > 0 {
+		return errors
+	}
+
+	return nil
+ }
+
+ func IsUpper(s string) bool {
+    for _, r := range s {
+        if !unicode.IsUpper(r) && unicode.IsLetter(r) {
+            return false
+        }
+    }
+    return true
+}
+
+func IsLower(s string) bool {
+    for _, r := range s {
+        if !unicode.IsLower(r) && unicode.IsLetter(r) {
+            return false
+        }
+    }
+    return true
+}
+
+func GetConstantValueAllowedCharacters() (string) {
+	return "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
+}
+

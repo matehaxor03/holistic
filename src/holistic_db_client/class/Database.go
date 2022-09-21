@@ -80,7 +80,7 @@ func (this *Database) getValidationFunctions() map[string]func() []error {
 
 func (this *Database) validateConstants()  ([]error) {
 	var errors []error 
-	VALID_CHARACTERS := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	VALID_CHARACTERS := GetConstantValueAllowedCharacters()
 	reflected_value := reflect.ValueOf(this)
 	refected_element := reflected_value.Elem()
 	string_fieldValue := ""
