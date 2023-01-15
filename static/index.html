@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+* {
+  box-sizing: border-box;
+}
+
+.row::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+[class*="col-"] {
+  padding: 1px;
+  float: left;
+}
+
+.menu {
+    width: 100%;
+}
+
+table {
+    width: 100%;
+}
+
+th {
+    color: #ffffff;
+}
+
+tr:nth-child(even){background-color: #E7E9EB;}
+tr {
+    border-bottom: 1px solid #ddd;
+}
+
+table tr th {
+    background-color: #282A35;
+}
+
+.button {
+  padding: 5px;
+  margin-bottom: 5px;
+  color: black;
+  background-color: white;
+  border: 1px solid black;
+}
+
+.button:hover {
+    background-color: black;
+    color: #ffffff;
+}
+
+.enabled {
+    background-color: black;
+    color: #ffffff;
+}
+
+[class*="col-"] {
+  width: 100%;
+}
+
+@media only screen and (min-width: 700px) {
+  .col-s-1 {width: 8.33%;}
+  .col-s-2 {width: 16.66%;}
+  .col-s-3 {width: 25%;}
+  .col-s-4 {width: 33.33%;}
+  .col-s-5 {width: 41.66%;}
+  .col-s-6 {width: 50%;}
+  .col-s-7 {width: 58.33%;}
+  .col-s-8 {width: 66.66%;}
+  .col-s-9 {width: 75%;}
+  .col-s-10 {width: 83.33%;}
+  .col-s-11 {width: 91.66%;}
+  .col-s-12 {width: 100%;}
+}
+@media only screen and (min-width: 1000px) {
+  .col-1 {width: 8.33%;}
+  .col-2 {width: 16.66%;}
+  .col-3 {width: 25%;}
+  .col-4 {width: 33.33%;}
+  .col-5 {width: 41.66%;}
+  .col-6 {width: 50%;}
+  .col-7 {width: 58.33%;}
+  .col-8 {width: 66.66%;}
+  .col-9 {width: 75%;}
+  .col-10 {width: 83.33%;}
+  .col-11 {width: 91.66%;}
+  .col-12 {width: 100%;}
+}
+</style>
+</head>
+<body>
+
+<div class="row">
+  <div id="main" class="col-12 col-s-12"></div>
+</div>
+
+</body>
+
+<script>
+    var url = 'https://' + location.hostname + ':5001/api';
+    var encodeHTMLText = function(text) {
+        text = encodeURIComponent(text);
+        text = text.replaceAll("%20", "\u00A0");
+        text = text.replaceAll("%3A", "\u003A");
+        text = text.replaceAll("%2F", "\u002F");
+        text = text.replaceAll("%3E", "\u003E");
+        return text;
+    }
+    
+    var removeAllChildElements = function(element) {
+        if(element == null) {
+            return;
+        }
+
+        while (element.firstChild) {
+            element.removeChild(element.lastChild);
+        }
+
+        return;
+    }
+
+    var send_http_request = function(params, callback_function) {
+        var http = new XMLHttpRequest();
+        http.onreadystatechange = function() { 
+            if (http.readyState == 4) {
+                var result = {};
+                try {
+                    result = JSON.parse(http.responseText);
+                    result["[http_status]"] = http.status;
+                    callback_function(result);
+                    
+                    if(result["[errors]"]) {
+                        console.error(JSON.stringify(result));
+                    } else {
+                        console.log(JSON.stringify(result));
+                    }
+                } catch(ex) {
+                    result = {};
+                    result["[queue]"] = "unknown"
+                    result["[errors]"] = [ex.toString()];
+                    result["[http_status]"] = http.status;
+                    callback_function(result);
+                    console.error(JSON.stringify(result));
+                }
+            }
+        }
+        http.open('POST', url, true);
+        http.setRequestHeader('Content-Type', 'application/json');
+        http.send(JSON.stringify(params));
+    }
+
+    var crud_record = function(mode, table_name, result) {
+        table_name = table_name.replace(/\\\"/g, "\"");
+        var temp_message_type = "";
+        if(mode == "update") {
+            temp_message_type = "UpdateRecord_" + decodeURIComponent(table_name);
+        } else if(mode == "create") {
+            temp_message_type = "CreateRecord_" + decodeURIComponent(table_name);
+        } else if(mode == "delete") {
+            temp_message_type = "UpdateRecord_" + decodeURIComponent(table_name);
+        }
+
+        var params = {"[queue]":temp_message_type, "data":result};
+        var callback_function = function(result) {
+            if(result["[errors]"]) {
+                return;
+            }
+            
+            navigate_to_view_table(table_name);
+        }
+        send_http_request(params, callback_function);
+    }
+
+    var record_before = null;
+
+    var redraw_record_page = function(table_name, mode, schema, record) {
+        main_content = document.getElementById("main");
+        removeAllChildElements(main_content);
+        
+        const title = document.createElement("h2");
+        title.setAttribute("tabindex", "0");
+        title.setAttribute("id", "content_heading");
+        const title_text = document.createTextNode(encodeURIComponent(table_name) + " record");
+        title.appendChild(title_text);
+        main_content.appendChild(title);
+        document.getElementById("content_heading").focus();
+
+        var top_back_button = document.createElement("button");
+        top_back_button.setAttribute("class", "button");
+        top_back_button.setAttribute("id", "backRecordButton");
+        var top_back_button_text = document.createTextNode("back");
+        top_back_button.appendChild(top_back_button_text);
+        top_back_button.onclick = function() {
+            navigate_to_view_table(table_name);
+        }
+
+        var bottom_back_button = document.createElement("button");
+        bottom_back_button.setAttribute("class", "button");
+        bottom_back_button.setAttribute("id", "backRecordButton");
+        var bottom_back_button_text = document.createTextNode("back");
+        bottom_back_button.appendChild(bottom_back_button_text);
+        bottom_back_button.onclick = function() {
+            navigate_to_view_table(table_name);
+        }
+
+        //var column_names = Object.keys(record);
+        var schema_keys =  Object.keys(schema);
+        var column_names_sorted = [];
+
+        for(var i=0; i < schema_keys.length; i++) {
+            var schema_definition = schema[schema_keys[i]];
+            if(schema_definition["auto_increment"] && schema_definition["primary_key"]) {
+                column_names_sorted.push(schema_keys[i]);
+            }
+        }
+        
+        {
+            var non_auto_increment_primary_keys = [];
+            for(var i=0; i < schema_keys.length; i++) {
+                var schema_definition = schema[schema_keys[i]];
+                if(!(schema_definition["auto_increment"]) && schema_definition["primary_key"]) {
+                    non_auto_increment_primary_keys.push(schema_keys[i]);
+                }
+            }
+            non_auto_increment_primary_keys.sort();
+
+            for(var i=0; i < non_auto_increment_primary_keys.length; i++) {
+                column_names_sorted.push(non_auto_increment_primary_keys[i]);
+            }
+        }
+
+        {
+            var foreign_keys = [];
+            for(var i=0; i < schema_keys.length; i++) {
+                var schema_definition = schema[schema_keys[i]];
+                if(schema_definition["foreign_key"]) {
+                    foreign_keys.push(schema_keys[i]);
+                }
+            }
+            foreign_keys.sort();
+
+            for(var i=0; i < foreign_keys.length; i++) {
+                column_names_sorted.push(foreign_keys[i]);
+            }
+        }
+
+        if(schema["name"]) {
+            column_names_sorted.push("name");
+        }
+
+        {
+            var other_fields = [];
+            for(var i=0; i < schema_keys.length; i++) {
+                var schema_column_name = schema_keys[i];
+                var schema_definition = schema[schema_column_name];
+                
+                if(schema_definition["primary_key"] || schema_definition["foreign_key"]) {
+                    continue
+                }
+
+                if(schema_column_name == "name" ||
+                    schema_column_name == "active" ||
+                    schema_column_name == "archieved" || 
+                    schema_column_name == "last_modified_date" || 
+                    schema_column_name == "created_date" || 
+                    schema_column_name == "archieved_date" ) {
+                    continue
+                }
+                other_fields.push(schema_column_name);
+            }
+            other_fields.sort();
+
+            for(var i=0; i < other_fields.length; i++) {
+                column_names_sorted.push(other_fields[i]);
+            }
+        }
+
+        if(schema["active"]) {
+            column_names_sorted.push("active");
+        }
+
+        if(schema["archieved"]) {
+            column_names_sorted.push("archieved");
+        }
+
+        if(schema["last_modified_date"]) {
+            column_names_sorted.push("last_modified_date");
+        }
+
+        if(schema["created_date"]) {
+            column_names_sorted.push("created_date");
+        }
+
+        if(schema["archieved_date"]) {
+            column_names_sorted.push("archieved_date");
+        }
+
+        const table = document.createElement("table");
+
+        const rowHeader = document.createElement("tr");
+       
+        const atrribute_label = document.createElement("th");
+        const atrribute_label_text = document.createTextNode("attribute");
+        atrribute_label.appendChild(atrribute_label_text);
+
+        const value_label = document.createElement("th");
+        const value_label_text = document.createTextNode("value");
+        value_label.appendChild(value_label_text);
+        
+        rowHeader.appendChild(atrribute_label);
+        rowHeader.appendChild(value_label);
+        table.appendChild(rowHeader);
+
+        for(var i = 0; i < column_names_sorted.length; i++) {
+            const columName = column_names_sorted[i].split('').join('');
+            const columnNameSchema = schema[columName];
+
+            if(mode == "create") {
+                if(columnNameSchema["primary_key"] && columnNameSchema["auto_increment"]) {
+                    continue;
+                }
+
+                if(columName == "last_modified_date" ||
+                    columName == "created_date" || 
+                    columName == "archieved_date") {
+                    continue;
+                }
+            } 
+
+            const rowData = document.createElement("tr");
+            
+            const label = document.createElement("td");
+            const labelText = document.createTextNode(columName);
+            label.appendChild(labelText);
+            rowData.appendChild(label);
+
+            const data = document.createElement("td");
+             if(mode == "view" || mode == "update" || mode == "create") {
+                var editable = true;
+
+                if(mode == "view") {
+                    editable = false;
+                }
+
+                if(columName == "last_modified_date" ||
+                    columName == "created_date" || 
+                    columName == "archieved_date") {
+                    editable = false;
+                }
+
+                if(columnNameSchema["primary_key"] && columnNameSchema["auto_increment"]){
+                    editable = false;
+                }
+                
+                if(editable) {
+                    if(columnNameSchema["type"] == "bool" || columnNameSchema["type"] == "*bool") {
+                        var trueButton =  document.createElement("button");
+                        trueButton.setAttribute("id", columName + "_true");
+                        
+                        if(mode == "update") {
+                            trueButton.setAttribute("value", record[columName]);
+                        } else if(mode == "create") {
+                            trueButton.setAttribute("value", columnNameSchema["default"]);
+                        }
+                        
+                        var trueButtonText = document.createTextNode("true");
+                        trueButton.appendChild(trueButtonText);
+
+                        var falseButton =  document.createElement("button");
+                        falseButton.setAttribute("id", columName + "_false");
+                        var bool_value = null;
+                        if(mode == "update") {
+                            falseButton.setAttribute("value", record[columName]);
+                            bool_value = record[columName];
+                        } else if(mode == "create") {
+                            falseButton.setAttribute("value", columnNameSchema["default"]);
+                            bool_value = columnNameSchema["default"];
+                        }
+
+                        var falseButtonText = document.createTextNode("false");
+                        falseButton.appendChild(falseButtonText);
+
+                        if(bool_value == true) {
+                            trueButton.setAttribute("class", "button enabled");
+                            trueButton.setAttribute("disabled", true);
+                            falseButton.setAttribute("class", "button");
+                            falseButton.onclick = function() {
+                                record[columName] = false;
+                                redraw_record_page(table_name, mode, schema, record);
+                            }
+                        } else if(bool_value == false) {
+                            trueButton.setAttribute("class", "button");
+                            trueButton.onclick = function() {
+                                record[columName] = true;
+                                redraw_record_page(table_name, mode, schema, record);
+                            }
+                            falseButton.setAttribute("class", "button enabled");
+                            falseButton.setAttribute("disabled", true);
+                        }
+                        
+                        data.appendChild(trueButton);
+                        data.appendChild(falseButton);
+                    } else {
+                        {
+                            var inputData = document.createElement("input");
+                            inputData.setAttribute("id", columName);
+                            if(mode == "update") {
+                                inputData.value = record[columName];
+                                inputData.setAttribute("value", record[columName]);
+                            } else if(mode == "create") {
+                                inputData.value = columnNameSchema["default"];
+                                inputData.setAttribute("value", columnNameSchema["default"]);
+                            }
+
+                            var key_up_function = function(event) {
+                                var target_column_name = columName;
+                                var x = function() {
+                                    console.log(target_column_name);
+                                    record[target_column_name] = document.getElementById(target_column_name).value
+                                }
+                                x();
+                            }
+                            
+                            inputData.onkeyup = key_up_function;
+                            data.appendChild(inputData);
+                        }
+                    }
+                }
+                else {
+                    {
+                        var inputData = document.createElement("input");
+                        inputData.setAttribute("id", columName);
+                        inputData.setAttribute("disabled", true);
+                        if(mode == "update" || mode == "view") {
+                            inputData.setAttribute("value", record[columName]);
+                            inputData.value = record[columName];
+                        } else if(mode == "create") {
+                            inputData.setAttribute("value", columnNameSchema["default"]);
+                            inputData.value = columnNameSchema["default"];
+                        }
+                        data.appendChild(inputData);
+                    }
+                }
+            } 
+           
+            rowData.appendChild(data);
+            table.appendChild(rowData);
+        }
+
+        main_content.appendChild(top_back_button);
+        main_content.appendChild(table);
+        main_content.appendChild(bottom_back_button);
+
+
+        if(mode == "update" || mode == "create") {
+            var saveButton = document.createElement("button");
+            saveButton.setAttribute("class", "button");
+            saveButton.setAttribute("id", "saveRecordButton");
+            var saveButtonText = document.createTextNode("save");
+            saveButton.appendChild(saveButtonText);
+            saveButton.onclick = function() {
+                save_result = {};
+                values_changed_count = 0;
+                for(var i = 0; i < column_names_sorted.length; i++) {
+                    var column_name = column_names_sorted[i];
+                    var schema_for_column = schema[column_name];
+
+                    if(column_name == "last_modified_date" ||
+                       column_name == "created_date" || 
+                       column_name == "archieved_date") {
+                        continue;
+                    }
+
+                    if(mode == "create") {
+                        if(column_name == "active" ||
+                           column_name == "archieved") {
+                            continue;
+                        }
+                    }
+
+                    if(mode == "create" && schema_for_column["primary_key"] && schema_for_column["auto_increment"]) {
+                        continue;
+                    }
+                  
+                    if(schema_for_column["type"] == "bool" || schema_for_column["type"] == "*bool") {
+                        var true_element = document.getElementById(column_name + "_true");
+                        var false_element = document.getElementById(column_name + "_false");
+                        if(false_element.getAttribute("disabled")) {
+                            if(record_before[column_name] != false) {
+                                save_result[column_name] = false;
+                                values_changed_count++;
+                            }
+                        } else {
+                            if(record_before[column_name] != true) {
+                                save_result[column_name] = true;
+                                values_changed_count++;
+                            }
+                        }
+                    } else if(schema_for_column["type"] == "string" || schema_for_column["type"] == "*string"){
+                        var string_element = document.getElementById(column_name);
+                        var new_string_value = string_element.value;
+                        if(record_before[column_name] != new_string_value) {
+                            save_result[column_name] = new_string_value;
+                            values_changed_count++;
+                        }
+                    } else if (schema_for_column["type"] == "uint" ||
+                               schema_for_column["type"] == "uint8" || 
+                               schema_for_column["type"] == "*uint8" || 
+                               schema_for_column["type"] == "uint16" || 
+                               schema_for_column["type"] == "*uint16" ||
+                               schema_for_column["type"] == "uint32" || 
+                               schema_for_column["type"] == "*uint32" ||
+                               schema_for_column["type"] == "uint64" || 
+                               schema_for_column["type"] == "*uint64" ||
+                               schema_for_column["type"] == "int" ||
+                               schema_for_column["type"] == "int8" || 
+                               schema_for_column["type"] == "*int8" || 
+                               schema_for_column["type"] == "int16" || 
+                               schema_for_column["type"] == "*int16" ||
+                               schema_for_column["type"] == "int32" || 
+                               schema_for_column["type"] == "*int32" ||
+                               schema_for_column["type"] == "int64" || 
+                               schema_for_column["type"] == "*int64") {
+                        var number_element = document.getElementById(column_name);
+                        var new_value = Number.parseInt(number_element.value, 10);
+
+                        if(record_before[column_name] != new_value ) {
+                            values_changed_count++;
+                        }
+
+                        if(record_before[column_name] != new_value || (schema_for_column["primary_key"] ||  schema_for_column["foreign_key"])) {
+                            save_result[column_name] = new_value;
+                        }
+                    }
+                }
+                console.log(save_result);
+                if(values_changed_count > 0) {
+                    crud_record(mode, table_name, save_result);
+                }  else {
+                    navigate_to_view_table(table_name);
+                }
+            } 
+            
+            main_content.appendChild(saveButton);
+
+            if(mode == "update") {
+                var deleteButton = document.createElement("button");
+                deleteButton.setAttribute("class", "button");
+                deleteButton.setAttribute("id", "deleteRecordButton");
+                var deleteButtonText = document.createTextNode("delete");
+                deleteButton.appendChild(deleteButtonText);
+                deleteButton.onclick = function() {
+                    save_result = {};
+                    for(var i = 0; i < column_names_sorted.length; i++) {
+                        var column_name = column_names_sorted[i];
+                        var schema_for_column = schema[column_name];
+
+                        if(column_name !== "archieved") {
+                            if(!(schema_for_column["primary_key"] || schema_for_column["foreign_key"])) {
+                                continue;
+                            }
+                        }
+
+                        if((schema_for_column["type"] == "bool" || schema_for_column["type"] == "*bool") && column_name === "archieved") {
+                            save_result[column_name] = true;
+                        } else if (schema_for_column["type"] == "uint" ||
+                                schema_for_column["type"] == "uint8" || 
+                                schema_for_column["type"] == "*uint8" || 
+                                schema_for_column["type"] == "uint16" || 
+                                schema_for_column["type"] == "*uint16" ||
+                                schema_for_column["type"] == "uint32" || 
+                                schema_for_column["type"] == "*uint32" ||
+                                schema_for_column["type"] == "uint64" || 
+                                schema_for_column["type"] == "*uint64" ||
+                                schema_for_column["type"] == "int" ||
+                                schema_for_column["type"] == "int8" || 
+                                schema_for_column["type"] == "*int8" || 
+                                schema_for_column["type"] == "int16" || 
+                                schema_for_column["type"] == "*int16" ||
+                                schema_for_column["type"] == "int32" || 
+                                schema_for_column["type"] == "*int32" ||
+                                schema_for_column["type"] == "int64" || 
+                                schema_for_column["type"] == "*int64") {
+                            var number_element = document.getElementById(column_name);
+                            var new_value = Number.parseInt(number_element.value, 10);
+
+                            if(schema_for_column["primary_key"] || schema_for_column["foreign_key"]) {
+                                save_result[column_name] = new_value;
+                            }
+                        }
+                    }
+                    crud_record("delete", table_name, save_result);
+                }
+                main_content.appendChild(deleteButton);
+            }
+        }
+    }
+
+    var navigate_to_manage_record = function(table_name, where_clause, mode) {
+        console.log(where_clause);
+        table_name = table_name.replace(/\\\"/g, "\"");
+        var params = {};
+
+        if(mode !== "create") {
+            var temp_message_type = "ReadRecords_" + decodeURIComponent(table_name);
+            params = {"[queue]":temp_message_type, "[where_fields]":where_clause, "[include_schema]":true};
+        } else {
+            var temp_message_type = "GetSchema_" + decodeURIComponent(table_name);
+            params = {"[queue]":temp_message_type};
+        }
+      
+        var callback_function = function(result) {
+            if(result["[errors]"]) {
+                return;
+            }
+
+            if(mode !== "create") {
+                record_before = JSON.parse(JSON.stringify(result["data"][0]));
+                redraw_record_page(table_name, mode, result["schema"], result["data"][0]);
+            } else {
+                record_before = {};
+                var new_record = {};
+                redraw_record_page(table_name, mode, result["data"], new_record);
+            }
+
+            console.log(result);
+        }
+        send_http_request(params, callback_function);
+    }
+    
+
+    var navigate_to_view_table = function(table_name) {
+        table_name = table_name.replace(/\\\"/g, "\"");
+        main_content = document.getElementById("main");
+        removeAllChildElements(main_content);
+
+        const title = document.createElement("h2");
+        title.setAttribute("tabindex", "0");
+        title.setAttribute("id", "content_heading");
+        const title_text = document.createTextNode(encodeURIComponent(table_name) + " records");
+        title.appendChild(title_text);
+        main_content.appendChild(title);
+        document.getElementById("content_heading").focus();
+
+        var temp_message_type = "ReadRecords_" + decodeURIComponent(table_name);
+        var params = {"[queue]":temp_message_type,"[select_fields]":["[minimal_fields]"],"[include_schema]":true};
+
+        var callback_function = function(result) {
+            var message_type = Object.keys(result)[0]
+            if(result["[errors]"]) {
+                return;
+            }
+
+            const top_back_button = document.createElement("button");
+            top_back_button.setAttribute("class", "button");
+            top_back_button.setAttribute("id", "backRecordButton");
+            var top_back_button_text = document.createTextNode("back");
+            top_back_button.appendChild(top_back_button_text);
+            top_back_button.onclick = function() {
+                navigate_to_home_page();
+            }
+
+            const bottom_back_button = document.createElement("button");
+            bottom_back_button.setAttribute("class", "button");
+            bottom_back_button.setAttribute("id", "backRecordButton");
+            var bottom_back_button_text = document.createTextNode("back");
+            bottom_back_button.appendChild(bottom_back_button_text);
+            bottom_back_button.onclick = function() {
+                navigate_to_home_page();
+            }
+
+            var payload = result;
+            var records = payload["data"];
+
+            var schema = result["schema"]; 
+            var schema_keys =  Object.keys(schema);
+            var column_names_sorted = [];
+            for(var i=0; i < schema_keys.length; i++) {
+                var schema_definition = schema[schema_keys[i]];
+                if(schema_definition["auto_increment"] && schema_definition["primary_key"]) {
+                    column_names_sorted.push(schema_keys[i]);
+                }
+            }
+            
+            {
+                var non_auto_increment_primary_keys = [];
+                for(var i=0; i < schema_keys.length; i++) {
+                    var schema_definition = schema[schema_keys[i]];
+                    if(!(schema_definition["auto_increment"]) && schema_definition["primary_key"]) {
+                        non_auto_increment_primary_keys.push(schema_keys[i]);
+                    }
+                }
+                non_auto_increment_primary_keys.sort();
+
+                for(var i=0; i < non_auto_increment_primary_keys.length; i++) {
+                    column_names_sorted.push(non_auto_increment_primary_keys[i]);
+                }
+            }
+
+            {
+                var foreign_keys = [];
+                for(var i=0; i < schema_keys.length; i++) {
+                    var schema_definition = schema[schema_keys[i]];
+                    if(schema_definition["foreign_key"]) {
+                        foreign_keys.push(schema_keys[i]);
+                    }
+                }
+                foreign_keys.sort();
+
+                for(var i=0; i < foreign_keys.length; i++) {
+                    column_names_sorted.push(foreign_keys[i]);
+                }
+            }
+
+            if(schema["name"]) {
+                column_names_sorted.push("name");
+            }
+
+           
+            const table = document.createElement("table");
+            for(var i = 0; i < records.length; i++) {
+                var current_record = records[i];
+                var column_names = column_names_sorted;
+                {
+                    if(i == 0) {
+                        const rowHeader = document.createElement("tr");
+                        for(var j = 0; j < column_names.length; j++) {
+                            const currentColumnName = column_names[j];
+                            const rowColumnHeader = document.createElement("th");
+                            const rowColumnHeaderText = document.createTextNode(currentColumnName);
+                            rowColumnHeader.appendChild(rowColumnHeaderText);
+                            rowHeader.appendChild(rowColumnHeader);
+                        }
+                        const rowColumnHeader = document.createElement("th");
+                        const rowColumnHeaderText = document.createTextNode("actions");
+                        rowColumnHeader.appendChild(rowColumnHeaderText);
+                        rowHeader.appendChild(rowColumnHeader);
+
+                        table.appendChild(rowHeader);
+                    }
+                }
+
+                {
+                    const rowData = document.createElement("tr");
+                    var identifier = {};
+                   
+                    for(var j = 0; j < column_names.length; j++) {
+                        const currentColumnName = column_names[j];
+                        const rowColumnData = document.createElement("td");
+                        const rowColumnDataText = document.createTextNode(current_record[currentColumnName]);
+
+                        console.log(schema[currentColumnName]);
+                        if(!(schema[currentColumnName]["primary_key"] || schema[currentColumnName]["foreign_key"])) {
+                            rowColumnData.appendChild(rowColumnDataText);
+                        } else if(schema[currentColumnName]["primary_key"]) {
+                            {
+                                const editButton = document.createElement("a");
+                                editButton.setAttribute("rel", "tag");
+                                editButton.setAttribute("href", "#");
+                                const editButtonText = document.createTextNode(current_record[currentColumnName]);
+                                var edit_function = function (table_name, id) {
+                                    var _table_name = table_name.split('').join('');
+                                    var _id = Object.assign({}, id);
+                                    var x = function() {
+                                        navigate_to_manage_record(_table_name, _id, "update");
+                                    }
+                                    return x;
+                                }
+                                var temp_identifier = {};
+                                temp_identifier[currentColumnName] = current_record[currentColumnName];
+                                editButton.onclick = edit_function(table_name, temp_identifier);
+                                editButton.appendChild(editButtonText);
+                                rowColumnData.appendChild(editButton);
+                            }
+                        } else if(schema[currentColumnName]["foreign_key"]) {
+                            {
+                                const editButton = document.createElement("a");
+                                editButton.setAttribute("rel", "tag");
+                                editButton.setAttribute("href", "#");
+                                const editButtonText = document.createTextNode(current_record[currentColumnName]);
+                                var edit_function = function (table_name, id) {
+                                    var _table_name = table_name.split('').join('');
+                                    var _id = Object.assign({}, id);
+                                    var x = function() {
+                                        navigate_to_manage_record(_table_name, _id, "update");
+                                    }
+                                    return x;
+                                }
+                                var temp_identifier = {};
+                                temp_identifier[currentColumnName] = current_record[currentColumnName];
+                                editButton.onclick = edit_function(schema[currentColumnName]["foreign_key_table_name"], temp_identifier);
+                                editButton.appendChild(editButtonText);
+                                rowColumnData.appendChild(editButton);
+                            }
+                        }
+
+                        rowData.appendChild(rowColumnData);
+                        
+                        if(j < (column_names.length -1)) {
+                            identifier[currentColumnName] = current_record[currentColumnName];
+                        }
+                    }
+                    const rowColumnData = document.createElement("td");
+                    
+                    const viewButton = document.createElement("button");
+                    viewButton.setAttribute("class", "button");
+                    const viewButtonText = document.createTextNode("view");
+                    var view_function = function (id) {
+                        var _id = Object.assign({}, id);
+                        var x = function() {
+                            navigate_to_manage_record(table_name, _id, "view");
+                        }
+                        return x;
+                    }
+                    viewButton.onclick = view_function(identifier);
+                    viewButton.appendChild(viewButtonText);
+                    rowColumnData.appendChild(viewButton);
+
+                    const editButton = document.createElement("button");
+                    editButton.setAttribute("class", "button");
+                    const editButtonText = document.createTextNode("edit");
+                    var edit_function = function (id) {
+                        var _id = Object.assign({}, id);
+                        var x = function() {
+                            navigate_to_manage_record(table_name, _id, "update");
+                        }
+                        return x;
+                    }
+                    editButton.onclick = edit_function(identifier);
+                    editButton.appendChild(editButtonText);
+                    rowColumnData.appendChild(editButton);
+
+                    rowData.appendChild(rowColumnData);
+                    table.appendChild(rowData);
+                }
+            }
+
+            const createButton = document.createElement("button");
+            createButton.setAttribute("class", "button");
+            const createButtonText = document.createTextNode("create");
+            createButton.appendChild(createButtonText);
+            createButton.onclick = function () {
+                navigate_to_manage_record(table_name, null, "create");
+            }
+
+            main_content.appendChild(top_back_button);
+            main_content.appendChild(createButton);
+            main_content.appendChild(table);
+            main_content.appendChild(bottom_back_button);
+
+
+            console.log(result);
+        }
+        send_http_request(params, callback_function);
+    }
+
+    load_table_names = function() {
+        var params = {"[queue]": "GetTableNames"};
+        var callback_function = function(result) {
+            if(result["[errors]"]) {
+                return;
+            }
+
+            leftHandNav = document.getElementById("menu");
+            removeAllChildElements(leftHandNav);
+
+            const span = document.createElement("span");
+            const length = result["data"].length
+            for(var i = 0; i < length; i++) {
+                var table_name = encodeURIComponent((result["data"][i]).replace(/"/g, "\\\""));
+                const button = document.createElement("button");
+                button.setAttribute("onclick", "navigate_to_view_table(\"" + table_name  + "\")");
+                button.setAttribute("class", "button top_menu col-3 col-s-3");
+                const text = document.createTextNode(table_name);
+                button.appendChild(text);
+                span.appendChild(button);
+            }
+            leftHandNav.appendChild(span);
+        }
+        send_http_request(params, callback_function);
+    }
+
+    navigate_to_home_page = function() {
+        main_content = document.getElementById("main");
+        removeAllChildElements(main_content);
+        heading_element = document.createElement("h1");
+        heading_text = document.createTextNode("Menu");
+        heading_element.appendChild(heading_text);
+        heading_element.setAttribute("id", "menu_heading");
+        heading_element.setAttribute("tabindex", "0");
+
+        menus_element = document.createElement("div");
+        menus_text = document.createTextNode("loading...");
+        menus_element.appendChild(menus_text);
+        menus_element.setAttribute("id", "menu");
+        menus_element.setAttribute("class", "menu");
+
+
+        spacer_element = document.createElement("div");
+        spacer_element.setAttribute("class", "col-12 col-s-12");
+        
+        
+        main_content.appendChild(heading_element);
+        main_content.appendChild(spacer_element);
+        main_content.appendChild(menus_element);
+        load_table_names();
+        document.getElementById("menu_heading").focus();
+    }
+
+    navigate_to_home_page();
+
+
+</script>

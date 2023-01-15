@@ -1,6 +1,5 @@
-dist/holistic
-dist/static
-dist/server.crt
-dist/server.key
-dist/.pid
 .DS_Store
+holistic
+holistic_db_config*
+server.crt
+server.key
