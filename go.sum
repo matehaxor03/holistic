@@ -6,11 +6,11 @@ github.com/matehaxor03/holistic_http v0.0.17 h1:P0NnoOZ9j4R7Ymci3v285zmgvvo5kSI1
 github.com/matehaxor03/holistic_http v0.0.17/go.mod h1:SHKP2NLO+yzic94PBwlDjLp2/B4g3QyuF9U5OrELFV8=
 github.com/matehaxor03/holistic_json v0.0.88 h1:BjacoMBb5rd44GQ0XjzyXTz4WBGEJCZzGlyccKNEhLg=
 github.com/matehaxor03/holistic_json v0.0.88/go.mod h1:8/5MdPf2xxxm8Z2dRw48k1KnaNbpS4HfN0awe1/xN+0=
-github.com/matehaxor03/holistic_processor v0.0.11 h1:7rz0dLWED97VZe9NSh3bnVhW7WGbtrDGsjKGi7uzjFI=
-github.com/matehaxor03/holistic_processor v0.0.11/go.mod h1:qZ9xdhdyj2qrYqZjp9mFlJfBte1X2qt8olB+m8zdTHI=
-github.com/matehaxor03/holistic_queue v0.0.6 h1:X8q+ox5Q41QwqOiAal4C7GxF0IYF5c8eLGemAxMu/X0=
-github.com/matehaxor03/holistic_queue v0.0.6/go.mod h1:mOVRKjbtuwAmL5/PKunfb946dwCuRjZAyxPJBUxui6g=
+github.com/matehaxor03/holistic_processor v0.0.13 h1:IMKz5Qph7+Viiig1kCrH+H6txm9To1NkVffxuznSX8g=
+github.com/matehaxor03/holistic_processor v0.0.13/go.mod h1:qZ9xdhdyj2qrYqZjp9mFlJfBte1X2qt8olB+m8zdTHI=
+github.com/matehaxor03/holistic_queue v0.0.9 h1:Sl1LJK6LNBUV0epTb6xy5hvNyozDntMm/tqX+sH8aKg=
+github.com/matehaxor03/holistic_queue v0.0.9/go.mod h1:mOVRKjbtuwAmL5/PKunfb946dwCuRjZAyxPJBUxui6g=
 github.com/matehaxor03/holistic_thread_safe v0.0.1 h1:OdmyUHTaMuucdkTfnGLiKUGpa/rH3xuRhdD+wXQrtI4=
 github.com/matehaxor03/holistic_thread_safe v0.0.1/go.mod h1:KqLl68oFJVeyycjI6LRDPJltEZ4ViqjLEnLglt1RBLs=
-github.com/matehaxor03/holistic_webserver v0.0.4 h1:EG8DfOVVmKjbEVV3+MxTJiJLMOxBi75YZJt5TSR8E9I=
-github.com/matehaxor03/holistic_webserver v0.0.4/go.mod h1:lkORiF8+iSpmJoec1vS0Ztgb+MuSV5uGt9qOm4MyiKA=
+github.com/matehaxor03/holistic_webserver v0.0.5 h1:g2EECm8BbMseScjBWx0I1miJby+ITkZGtb5mZziQNHw=
+github.com/matehaxor03/holistic_webserver v0.0.5/go.mod h1:lkORiF8+iSpmJoec1vS0Ztgb+MuSV5uGt9qOm4MyiKA=
